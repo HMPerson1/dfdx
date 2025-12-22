@@ -77,7 +77,7 @@ use super::broadcasts::length;
 
 macro_rules! slice_shape {
     ([$($dim:ident)*] [$($range:ident)*] [$($idx:tt)*]) => {
-        impl<$($dim: Dim),*, $($range: RangeBounds<usize>),*> SliceShape<($($range,)*)> for ($($dim,)*)
+        impl<$($dim: Dim),*, $($range: RangeBounds<usize> + 'static),*> SliceShape<($($range,)*)> for ($($dim,)*)
         where
             $($dim: SliceDim<$range>),*
         {
@@ -93,7 +93,7 @@ macro_rules! slice_shape {
             }
         }
 
-        impl<$($range: RangeBounds<usize>),*> SliceShape<($($range,)*)> for [usize; {length!($($range)*)}]
+        impl<$($range: RangeBounds<usize> + 'static),*> SliceShape<($($range,)*)> for [usize; {length!($($range)*)}]
         where
             $(usize: SliceDim<$range>),*
         {
