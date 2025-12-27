@@ -281,6 +281,11 @@ pub use upscale2d::{
 };
 pub use var_to::VarTo;
 
+pub use utilities::{
+    cpu_kernels::{BinaryDerivative2, UnaryDerivative2},
+    ops::{try_binary_op2, try_unary_op2, Ignored, Needed},
+};
+
 mod conv1d;
 pub use conv1d::TryConv1D;
 

@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use super::ops::{BinaryKernel, UnaryKernel};
+use super::ops::{BinaryKernel, BinaryKernel2, IsNeeded, UnaryKernel, UnaryKernel2};
 use crate::{
-    shapes::{Dtype, Shape},
+    shapes::{Dtype, HasShape, Shape},
     tensor::{
         cpu::{Cpu, LendingIterator, NdIndex},
         unique_id, Error, Tensor, Tensorlike, ZerosTensor,
@@ -199,6 +199,141 @@ impl<E: Dtype, Op: BinaryDerivative<E>> BinaryKernel<Op, E> for Cpu {
                 }
             }
             _ => unreachable!(),
+        }
+        Ok(())
+    }
+}
+
+pub trait UnaryDerivative2<E> {
+    type BackInpNeeded: IsNeeded;
+    type BackOutNeeded: IsNeeded;
+
+    fn f(&self, x: &E) -> E;
+    fn df(
+        &self,
+        x: <Self::BackInpNeeded as IsNeeded>::Output<&E>,
+        f: <Self::BackOutNeeded as IsNeeded>::Output<&E>,
+    ) -> E;
+}
+
+pub trait BinaryDerivative2<E>: std::fmt::Debug {
+    type BackLhsNeeded: IsNeeded;
+    type BackRhsNeeded: IsNeeded;
+    type BackOutNeeded: IsNeeded;
+
+    fn f(&self, x: &E, y: &E) -> E;
+    fn df(
+        &self,
+        x: <Self::BackLhsNeeded as IsNeeded>::Output<&E>,
+        y: <Self::BackRhsNeeded as IsNeeded>::Output<&E>,
+        f: <Self::BackOutNeeded as IsNeeded>::Output<&E>,
+    ) -> (E, E);
+}
+
+impl<E: Dtype, Op: UnaryDerivative2<E>> UnaryKernel2<Op, E> for Cpu {
+    type BackInpNeeded = Op::BackInpNeeded;
+    type BackOutNeeded = Op::BackOutNeeded;
+
+    fn forward<S: Shape>(
+        &self,
+        op: Op,
+        inp: Tensor<S, E, Self>,
+    ) -> Result<Tensor<S, E, Self>, Error> {
+        let mut out = inp;
+        out.id = unique_id();
+        for x in out.buf_iter_mut() {
+            *x = op.f(x);
+        }
+        Ok(out)
+    }
+
+    fn backward<S: Shape>(
+        &self,
+        op: Op,
+        inp: <Self::BackInpNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
+        grad_inp: &mut Self::Vec,
+        out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
+        grad_out: &Self::Vec,
+    ) -> Result<(), Error> {
+        for (i, x) in grad_inp.iter_mut().enumerate() {
+            *x += op.df(
+                Self::BackInpNeeded::fmap(&inp, |x| &x.data[i]),
+                Self::BackOutNeeded::fmap(&out, |x| &x.data[i]),
+            ) * grad_out[i];
+        }
+        Ok(())
+    }
+}
+
+impl<E: Dtype, Op: BinaryDerivative2<E>> BinaryKernel2<Op, E> for Cpu {
+    type BackLhsNeeded = Op::BackLhsNeeded;
+    type BackRhsNeeded = Op::BackRhsNeeded;
+    type BackOutNeeded = Op::BackOutNeeded;
+
+    fn forward<S: Shape>(
+        &self,
+        op: Op,
+        mut lhs: Tensor<S, E, Self>,
+        mut rhs: Tensor<S, E, Self>,
+    ) -> Result<Tensor<S, E, Self>, Error> {
+        let lhs_valid = lhs.strides == lhs.shape.strides();
+        let rhs_valid = rhs.strides == rhs.shape.strides();
+        if lhs_valid || rhs_valid {
+            let lhs_count = std::sync::Arc::strong_count(&lhs.data);
+            let rhs_count = std::sync::Arc::strong_count(&rhs.data);
+            if rhs_valid && (rhs_count == 1 || !lhs_valid || lhs_count != 1) {
+                rhs.id = unique_id();
+                let mut lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
+                for r in rhs.buf_iter_mut() {
+                    *r = op.f(&lhs.data[lhs_idx.next().unwrap()], r);
+                }
+                Ok(rhs)
+            } else {
+                lhs.id = unique_id();
+                let mut rhs_idx = NdIndex::new(rhs.shape, rhs.strides);
+                for l in lhs.buf_iter_mut() {
+                    *l = op.f(l, &rhs.data[rhs_idx.next().unwrap()]);
+                }
+                Ok(lhs)
+            }
+        } else {
+            let mut out = self.try_zeros_like(&lhs.shape)?;
+            let mut lhs_iter = lhs.iter();
+            let mut rhs_iter = rhs.iter();
+            for o in out.buf_iter_mut() {
+                let l = lhs_iter.next().unwrap();
+                let r = rhs_iter.next().unwrap();
+                *o = op.f(l, r);
+            }
+            Ok(out)
+        }
+    }
+
+    fn backward<S: Shape>(
+        &self,
+        op: Op,
+        lhs_ghost: crate::prelude::GhostTensor<S, E, Self>,
+        lhs_data: <Self::BackLhsNeeded as IsNeeded>::Output<std::sync::Arc<Self::Vec>>,
+        grad_lhs: &mut Self::Vec,
+        rhs_ghost: crate::prelude::GhostTensor<S, E, Self>,
+        rhs_data: <Self::BackRhsNeeded as IsNeeded>::Output<std::sync::Arc<Self::Vec>>,
+        grad_rhs: &mut Self::Vec,
+        out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
+        grad_out: &Self::Vec,
+    ) -> Result<(), Error> {
+        let mut lhs_idx = NdIndex::new(*lhs_ghost.shape(), lhs_ghost.strides());
+        let mut rhs_idx = NdIndex::new(*rhs_ghost.shape(), rhs_ghost.strides());
+        // NOTE: we can use .buf_iter() here because we know the outcome of this op is
+        // contiguous from forward
+        for (out_i, &go) in grad_out.iter().enumerate() {
+            let lhs_i = lhs_idx.next().unwrap();
+            let rhs_i = rhs_idx.next().unwrap();
+            let l = Self::BackLhsNeeded::fmap(&lhs_data, |x| &x[lhs_i]);
+            let r = Self::BackRhsNeeded::fmap(&rhs_data, |x| &x[rhs_i]);
+            let f = Self::BackOutNeeded::fmap(&out, |x| &x.data[out_i]);
+            let (dfdx, dfdy) = op.df(l, r, f);
+            grad_lhs[lhs_i] += dfdx * go;
+            grad_rhs[rhs_i] += dfdy * go;
         }
         Ok(())
     }
