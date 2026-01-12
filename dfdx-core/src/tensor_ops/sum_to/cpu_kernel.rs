@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use crate::{
     dtypes::{Dtype, NotMixedPrecision},
     shapes::{Axes, HasAxes, ReduceShapeTo, Shape},
@@ -70,7 +72,7 @@ impl super::SumKernel<crate::dtypes::AMP<crate::dtypes::f16>> for Cpu {
     }
 }
 
-impl<E: Dtype + NotMixedPrecision> super::SumKernel<E> for Cpu {
+impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone + 'static> super::SumKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Ax: Axes>(
         &self,
         dst: Dst,

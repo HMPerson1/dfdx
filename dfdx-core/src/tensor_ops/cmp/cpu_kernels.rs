@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use crate::{
     shapes::{Shape, Unit},
     tensor::{
@@ -15,7 +17,7 @@ trait CmpOpCpuKernel<E: Unit> {
     fn func(lhs: E, rhs: E) -> bool;
 }
 
-impl<Op: CmpOpCpuKernel<E>, E: Unit> CmpKernel<Op, E> for Cpu {
+impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone + 'static> CmpKernel<Op, E> for Cpu<A> {
     fn forward<S: Shape, T>(
         &self,
         lhs: &Tensor<S, E, Self, T>,
@@ -32,7 +34,7 @@ impl<Op: CmpOpCpuKernel<E>, E: Unit> CmpKernel<Op, E> for Cpu {
     }
 }
 
-impl<Op: CmpOpCpuKernel<E>, E: Unit> ScalarCmpKernel<Op, E> for Cpu {
+impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone + 'static> ScalarCmpKernel<Op, E> for Cpu<A> {
     fn forward<S: Shape, T>(
         &self,
         lhs: &Tensor<S, E, Self, T>,

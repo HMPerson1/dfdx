@@ -2,7 +2,7 @@ use crate::{
     shapes::{Shape, Unit},
     tensor::{Cpu, Tensor},
 };
-use std::sync::Arc;
+use std::{alloc::Allocator, sync::Arc};
 
 pub(crate) fn index_to_i<S: Shape>(shape: &S, strides: &S::Concrete, index: S::Concrete) -> usize {
     let sizes = shape.concrete();
@@ -14,7 +14,7 @@ pub(crate) fn index_to_i<S: Shape>(shape: &S, strides: &S::Concrete, index: S::C
     strides.into_iter().zip(index).map(|(a, b)| a * b).sum()
 }
 
-impl<S: Shape, E: Unit, T> std::ops::Index<S::Concrete> for Tensor<S, E, Cpu, T> {
+impl<S: Shape, E: Unit, T, A: Allocator + Clone + 'static> std::ops::Index<S::Concrete> for Tensor<S, E, Cpu<A>, T> {
     type Output = E;
     #[inline(always)]
     fn index(&self, index: S::Concrete) -> &Self::Output {
@@ -23,7 +23,7 @@ impl<S: Shape, E: Unit, T> std::ops::Index<S::Concrete> for Tensor<S, E, Cpu, T>
     }
 }
 
-impl<S: Shape, E: Unit, T> std::ops::IndexMut<S::Concrete> for Tensor<S, E, Cpu, T> {
+impl<S: Shape, E: Unit, T, A: Allocator + Clone + 'static> std::ops::IndexMut<S::Concrete> for Tensor<S, E, Cpu<A>, T> {
     #[inline(always)]
     fn index_mut(&mut self, index: S::Concrete) -> &mut Self::Output {
         let i = index_to_i(&self.shape, &self.strides, index);

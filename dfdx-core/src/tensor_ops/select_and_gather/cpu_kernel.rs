@@ -1,12 +1,14 @@
 #![allow(clippy::needless_range_loop)]
 
+use std::alloc::Allocator;
+
 use crate::shapes::{Axes, Dtype, RemoveDimTo, ReplaceDimTo, Shape};
 use crate::tensor::{
     cpu::{index_to_i, LendingIterator, NdIndex},
     Cpu, Error, Storage, Tensor, ZerosTensor,
 };
 
-impl<E: Dtype> super::ReplaceDimKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::ReplaceDimKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Idx: Shape>(
         &self,
         inp: &Tensor<Src, E, Self>,
@@ -82,7 +84,7 @@ impl<E: Dtype> super::ReplaceDimKernel<E> for Cpu {
     }
 }
 
-impl<E: Dtype> super::RemoveDimKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::RemoveDimKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Idx: Shape>(
         &self,
         inp: &Tensor<Src, E, Self>,

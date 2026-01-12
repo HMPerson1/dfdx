@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use crate::{
     shapes::{Axes, Dtype, HasAxes, ReduceShapeTo, Shape},
     tensor::{Cpu, Error, Tensor, ZerosTensor},
@@ -6,7 +8,7 @@ use crate::{
 
 use num_traits::Float;
 
-impl<E: Dtype + Float> super::MinReduceKernel<E> for Cpu {
+impl<E: Dtype + Float, A: Allocator + Clone + 'static> super::MinReduceKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Ax: Axes>(
         &self,
         dst: Dst,

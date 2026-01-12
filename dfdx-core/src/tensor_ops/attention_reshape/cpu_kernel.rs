@@ -1,7 +1,9 @@
+use std::alloc::Allocator;
+
 use super::*;
 use crate::tensor::{Cpu, NoneTape};
 
-impl<E: Dtype> super::AttentionReshapeKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::AttentionReshapeKernel<E> for Cpu<A> {
     fn forward<const THREE_HIDDEN_DIM: usize, const NUM_HEADS: usize, const HEAD_DIM: usize>(
         &self,
         qkv: &Tensor<(usize, Const<THREE_HIDDEN_DIM>), E, Self>,

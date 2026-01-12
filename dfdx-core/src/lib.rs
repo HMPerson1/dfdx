@@ -101,6 +101,7 @@
 //!
 //! and **much much more!**
 
+#![feature(allocator_api)]
 #![cfg_attr(all(feature = "no-std", not(feature = "std")), no_std)]
 #![allow(incomplete_features)]
 #![cfg_attr(feature = "nightly", feature(generic_const_exprs))]
@@ -178,6 +179,7 @@ pub(crate) mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     impl<F: Copy + std::fmt::Debug + std::fmt::Display + AssertClose> AssertClose
         for crate::dtypes::AMP<F>
     {

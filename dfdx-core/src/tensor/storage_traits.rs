@@ -14,9 +14,9 @@ pub trait RandomU64 {
 }
 
 /// Something that can store nd arrays for a given [Shape] and [Dtype]
-pub trait Storage<E>: 'static + std::fmt::Debug + Default + Clone {
+pub trait Storage<E>: 'static + Clone {
     /// Generic Storage type
-    type Vec: 'static + std::fmt::Debug + Clone + Send + Sync;
+    type Vec: Clone;
 
     /// Allocates a gradient for the given nd array
     fn try_alloc_grad(&self, storage: &Self::Vec) -> Result<Self::Vec, Error> {
@@ -80,7 +80,7 @@ pub trait Cache {
 
 /// Internal trait - Represents something that can allocate its own gradient.
 pub trait AllocGrad {
-    type Gradient: 'static;
+    type Gradient;
     fn try_alloc_grad(&self) -> Result<Self::Gradient, Error>;
 }
 

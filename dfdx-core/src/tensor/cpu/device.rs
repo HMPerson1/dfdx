@@ -1,5 +1,6 @@
 use crate::shapes::{Shape, Unit};
 use crate::tensor::{cpu::LendingIterator, storage_traits::*, Error, Tensor};
+use std::alloc::{Allocator, Global};
 use std::vec::Vec;
 
 /// A device that stores data on the heap.
@@ -8,18 +9,24 @@ use std::vec::Vec;
 ///
 /// Use [Cpu::seed_from_u64] to control what seed is used.
 #[derive(Clone, Debug)]
-pub struct Cpu {
+pub struct Cpu<A: Allocator = Global> {
+    pub alloc: A,
+}
+
+impl<A: Allocator> Cpu<A> {
+    pub fn with_allocator(alloc: A) -> Self {
+        Self { alloc }
+    }
 }
 
 impl Default for Cpu {
     fn default() -> Self {
-        Self {
-        }
+        Self { alloc: Global }
     }
 }
 
-impl<E: Unit> Storage<E> for Cpu {
-    type Vec = Vec<E>;
+impl<E: Unit, A: Allocator + Clone + 'static> Storage<E> for Cpu<A> {
+    type Vec = Vec<E, A>;
 
     fn try_alloc_len(&self, len: usize) -> Result<Self::Vec, Error> {
         self.try_alloc_zeros(len)
@@ -39,7 +46,7 @@ impl<E: Unit> Storage<E> for Cpu {
     }
 }
 
-impl Synchronize for Cpu {
+impl<A: Allocator> Synchronize for Cpu<A> {
     fn try_synchronize(&self) -> Result<(), Error> {
         Ok(())
     }

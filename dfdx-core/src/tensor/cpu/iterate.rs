@@ -1,6 +1,6 @@
 use super::{super::Tensor, Cpu};
 use crate::shapes::{Shape, Unit};
-use std::vec::Vec;
+use std::alloc::Allocator;
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct NdIndex<S: Shape> {
@@ -100,26 +100,26 @@ impl<S: Shape> NdIndex<S> {
 }
 
 pub(crate) struct StridedRefIter<'a, S: Shape, E> {
-    data: &'a Vec<E>,
+    data: &'a [E],
     index: NdIndex<S>,
 }
 
 pub(crate) struct StridedMutIter<'a, S: Shape, E> {
-    data: &'a mut Vec<E>,
+    data: &'a mut [E],
     index: NdIndex<S>,
 }
 
 pub(crate) struct StridedRefIndexIter<'a, S: Shape, E> {
-    data: &'a Vec<E>,
+    data: &'a [E],
     index: NdIndex<S>,
 }
 
 pub(crate) struct StridedMutIndexIter<'a, S: Shape, E> {
-    data: &'a mut Vec<E>,
+    data: &'a mut [E],
     index: NdIndex<S>,
 }
 
-impl<S: Shape, E: Unit, T> Tensor<S, E, Cpu, T> {
+impl<S: Shape, E: Unit, T, A: Allocator + Clone + 'static> Tensor<S, E, Cpu<A>, T> {
     #[inline]
     pub(crate) fn buf_iter(&self) -> std::slice::Iter<'_, E> {
         self.data.iter()
@@ -141,7 +141,7 @@ impl<S: Shape, E: Unit, T> Tensor<S, E, Cpu, T> {
     #[inline]
     pub(crate) fn iter_mut(&mut self) -> StridedMutIter<'_, S, E> {
         StridedMutIter {
-            data: std::sync::Arc::make_mut(&mut self.data),
+            data: &mut std::sync::Arc::make_mut(&mut self.data)[..],
             index: NdIndex::new(self.shape, self.strides),
         }
     }
@@ -157,7 +157,7 @@ impl<S: Shape, E: Unit, T> Tensor<S, E, Cpu, T> {
     #[inline]
     pub(crate) fn iter_mut_with_index(&mut self) -> StridedMutIndexIter<'_, S, E> {
         StridedMutIndexIter {
-            data: std::sync::Arc::make_mut(&mut self.data),
+            data: &mut std::sync::Arc::make_mut(&mut self.data)[..],
             index: NdIndex::new(self.shape, self.strides),
         }
     }

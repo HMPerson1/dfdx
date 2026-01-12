@@ -1,9 +1,11 @@
+use std::alloc::Allocator;
+
 use crate::{
     shapes::*,
     tensor::{cpu::NdIndex, *},
 };
 
-impl<E: Dtype> super::ConcatAlongKernel<E> for Cpu {
+impl<E: Dtype, Al: Allocator + Clone + 'static> super::ConcatAlongKernel<E> for Cpu<Al> {
     fn forward<A: Shape, B: Shape, C: Shape>(
         &self,
         ax: usize,

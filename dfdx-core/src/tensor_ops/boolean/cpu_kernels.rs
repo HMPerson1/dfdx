@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use crate::{
     shapes::{Shape, Unit},
     tensor::{cpu::LendingIterator, Cpu, Error, Tensor, ZerosTensor},
@@ -5,7 +7,7 @@ use crate::{
 
 use super::BooleanKernel;
 
-impl Cpu {
+impl<A: Allocator + Clone + 'static> Cpu<A> {
     fn eval_binary<S: Shape, E: Unit, O: Fn(E, E) -> E>(
         &self,
         op: O,
@@ -23,7 +25,7 @@ impl Cpu {
     }
 }
 
-impl BooleanKernel for Cpu {
+impl<A: Allocator + Clone + 'static> BooleanKernel for Cpu<A> {
     fn not<S: Shape>(&self, inp: &Tensor<S, bool, Self>) -> Result<Tensor<S, bool, Self>, Error> {
         let mut out = inp.clone();
         for x in out.buf_iter_mut() {

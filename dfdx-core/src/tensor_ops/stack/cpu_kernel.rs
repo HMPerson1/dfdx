@@ -3,9 +3,9 @@ use crate::{
     tensor::{unique_id, Cpu, Error, Tensor},
 };
 
-use std::vec::Vec;
+use std::{alloc::Allocator, vec::Vec};
 
-impl<E: Dtype> super::StackKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::StackKernel<E> for Cpu<A> {
     fn forward<S: Shape, Num: Dim>(
         &self,
         num: Num,

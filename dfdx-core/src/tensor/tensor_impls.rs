@@ -29,7 +29,7 @@ use std::sync::Arc;
 /// // A 3d tensor with usize elements, stored on the Cpu, without any tape
 /// type C = Tensor<Rank3<4, 2, 3>, usize, Cpu, NoneTape>;
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Tensor<S: Shape, E, D: Storage<E>, T = NoneTape> {
     pub(crate) id: UniqueId,
     pub(crate) data: Arc<D::Vec>,
@@ -37,6 +37,19 @@ pub struct Tensor<S: Shape, E, D: Storage<E>, T = NoneTape> {
     pub(crate) strides: S::Concrete,
     pub(crate) device: D,
     pub(crate) tape: T,
+}
+
+impl<S: Shape, E, D: Storage<E>, T: Clone> Clone for Tensor<S, E, D, T> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            data: self.data.clone(),
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+            device: self.device.clone(),
+            tape: self.tape.clone(),
+        }
+    }
 }
 
 impl<S: Shape, E, D: Storage<E>, T> HasShape for Tensor<S, E, D, T> {

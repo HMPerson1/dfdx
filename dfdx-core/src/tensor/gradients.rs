@@ -190,7 +190,7 @@ impl<E, D: Storage<E>> Default for OwnedTape<E, D> {
     }
 }
 
-impl<E: std::fmt::Debug, D: Storage<E>> std::fmt::Debug for OwnedTape<E, D> {
+impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<E, D> where <D as Storage<E>>::Vec: std::fmt::Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OwnedTape")
             .field("num_operations", &self.operations.len())

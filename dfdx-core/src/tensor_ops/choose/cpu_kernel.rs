@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use crate::{
     shapes::{Dtype, Shape},
     tensor::{
@@ -6,7 +8,7 @@ use crate::{
     },
 };
 
-impl<E: Dtype> super::ChooseKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::ChooseKernel<E> for Cpu<A> {
     fn forward<S: Shape>(
         &self,
         cond: &Tensor<S, bool, Self>,

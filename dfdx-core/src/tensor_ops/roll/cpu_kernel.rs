@@ -3,9 +3,9 @@ use crate::{
     tensor::{cpu::NdIndex, *},
 };
 
-use std::sync::Arc;
+use std::{alloc::Allocator, sync::Arc};
 
-impl<E: Dtype> super::RollKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::RollKernel<E> for Cpu<A> {
     fn forward<S: Shape>(
         &self,
         op: super::RollOp,

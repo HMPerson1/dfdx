@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{alloc::Allocator, borrow::Cow};
 
 use super::ops::{BinaryKernel, BinaryKernel2, IsNeeded, UnaryKernel, UnaryKernel2};
 use crate::{
@@ -43,7 +43,7 @@ pub trait BinaryDerivative<E>: std::fmt::Debug {
     }
 }
 
-impl<E: Dtype, Op: UnaryDerivative<E>> UnaryKernel<Op, E> for Cpu {
+impl<E: Dtype, Op: UnaryDerivative<E>, A: Allocator + Clone + 'static> UnaryKernel<Op, E> for Cpu<A> {
     const BACKWARD_WITHOUT_INP: bool = Op::DF_USES_FX;
     const BACKWARD_WITHOUT_DATA: bool = Op::HAS_CONST_DF;
 
@@ -108,7 +108,7 @@ impl<E: Dtype, Op: UnaryDerivative<E>> UnaryKernel<Op, E> for Cpu {
     }
 }
 
-impl<E: Dtype, Op: BinaryDerivative<E>> BinaryKernel<Op, E> for Cpu {
+impl<E: Dtype, Op: BinaryDerivative<E>, A: Allocator + Clone + 'static> BinaryKernel<Op, E> for Cpu<A> {
     const BACKWARD_WITHOUT_DATA: bool = Op::HAS_CONST_DF;
     fn forward<S: Shape>(
         &self,
@@ -230,7 +230,7 @@ pub trait BinaryDerivative2<E>: std::fmt::Debug {
     ) -> (E, E);
 }
 
-impl<E: Dtype, Op: UnaryDerivative2<E>> UnaryKernel2<Op, E> for Cpu {
+impl<E: Dtype, Op: UnaryDerivative2<E>, A: Allocator + Clone + 'static> UnaryKernel2<Op, E> for Cpu<A> {
     type BackInpNeeded = Op::BackInpNeeded;
     type BackOutNeeded = Op::BackOutNeeded;
 
@@ -265,7 +265,7 @@ impl<E: Dtype, Op: UnaryDerivative2<E>> UnaryKernel2<Op, E> for Cpu {
     }
 }
 
-impl<E: Dtype, Op: BinaryDerivative2<E>> BinaryKernel2<Op, E> for Cpu {
+impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone + 'static> BinaryKernel2<Op, E> for Cpu<A> {
     type BackLhsNeeded = Op::BackLhsNeeded;
     type BackRhsNeeded = Op::BackRhsNeeded;
     type BackOutNeeded = Op::BackOutNeeded;

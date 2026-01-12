@@ -1,9 +1,11 @@
+use std::alloc::Allocator;
+
 use crate::{
     shapes::{Dtype, Shape},
     tensor::{unique_id, Cpu, Error, Tensor},
 };
 
-impl<E: Dtype> super::ConcatKernel<E> for Cpu {
+impl<E: Dtype, Al: Allocator + Clone + 'static> super::ConcatKernel<E> for Cpu<Al> {
     fn forward<A: Shape, B: Shape>(
         &self,
         a: &Tensor<A, E, Self>,

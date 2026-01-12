@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use super::{AdamConfig, AdamKernel, WeightDecay};
 use crate::{
     dtypes::{Dtype, NotMixedPrecision},
@@ -51,7 +53,7 @@ impl AdamKernel<crate::dtypes::AMP<crate::dtypes::f16>> for Cpu {
     }
 }
 
-impl<E: num_traits::Float + Dtype + NotMixedPrecision> AdamKernel<E> for Cpu {
+impl<E: num_traits::Float + Dtype + NotMixedPrecision, A: Allocator + Clone + 'static> AdamKernel<E> for Cpu<A> {
     fn adam_kernel(
         &self,
         t: i32,

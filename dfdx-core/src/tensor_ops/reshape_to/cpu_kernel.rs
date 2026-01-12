@@ -1,10 +1,12 @@
+use std::alloc::Allocator;
+
 use crate::shapes::{Dtype, Shape};
 use crate::tensor::{
     cpu::{LendingIterator, NdIndex},
     Cpu, Error, Tensor, ZerosTensor,
 };
 
-impl<E: Dtype> super::ReshapeKernel<E> for Cpu {
+impl<E: Dtype, A: Allocator + Clone + 'static> super::ReshapeKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape>(
         &self,
         dst: &Dst,

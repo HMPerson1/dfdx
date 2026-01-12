@@ -1,3 +1,5 @@
+use std::alloc::Allocator;
+
 use crate::{
     dtypes::{Dtype, NotMixedPrecision},
     tensor::{cpu::Cpu, Error},
@@ -71,7 +73,7 @@ impl RMSpropKernel<crate::dtypes::AMP<crate::dtypes::f16>> for Cpu {
     }
 }
 
-impl<E: num_traits::Float + Dtype + NotMixedPrecision> RMSpropKernel<E> for Cpu {
+impl<E: num_traits::Float + Dtype + NotMixedPrecision, A: Allocator + Clone + 'static> RMSpropKernel<E> for Cpu<A> {
     fn rmsprop_kernel(
         &self,
         cfg: &RMSpropConfig,

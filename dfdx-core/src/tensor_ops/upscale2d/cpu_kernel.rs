@@ -1,6 +1,7 @@
 use crate::shapes::*;
 use crate::tensor::{Cpu, Error, Tensor};
 
+use std::alloc::Allocator;
 use std::sync::Arc;
 
 use num_traits::Float;
@@ -15,8 +16,8 @@ fn make_4d<S: Shape>(strides: S::Concrete) -> [usize; 4] {
     }
 }
 
-impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign>
-    super::Upscale2DKernel<E, NearestNeighbor> for Cpu
+impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign, A: Allocator + Clone + 'static>
+    super::Upscale2DKernel<E, NearestNeighbor> for Cpu<A>
 {
     fn forward<I: Shape, O: Shape>(
         &self,
@@ -81,7 +82,7 @@ impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign>
     }
 }
 
-impl<E: Float + Dtype> super::Upscale2DKernel<E, Bilinear> for Cpu {
+impl<E: Float + Dtype, A: Allocator + Clone + 'static> super::Upscale2DKernel<E, Bilinear> for Cpu<A> {
     fn forward<I: Shape, O: Shape>(
         &self,
         op: super::Upscale2DOp,

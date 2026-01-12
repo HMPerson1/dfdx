@@ -3,6 +3,7 @@
 use crate::shapes::*;
 use crate::tensor::{Cpu, Error, Tensor, ZerosTensor};
 
+use std::alloc::Allocator;
 use std::sync::Arc;
 
 #[allow(unused)]
@@ -144,7 +145,7 @@ impl MatMulImpl<half::f16> for Cpu {
     }
 }
 
-impl MatMulImpl<f32> for Cpu {
+impl<A: Allocator> MatMulImpl<f32> for Cpu<A> {
     #[inline]
     fn matmul<M: Dim, K: Dim, N: Dim>(
         (m, k, n): (M, K, N),
@@ -186,7 +187,7 @@ impl MatMulImpl<f32> for Cpu {
     }
 }
 
-impl MatMulImpl<f64> for Cpu {
+impl<A: Allocator> MatMulImpl<f64> for Cpu<A> {
     #[inline]
     fn matmul<M: Dim, K: Dim, N: Dim>(
         (m, k, n): (M, K, N),
@@ -228,7 +229,7 @@ impl MatMulImpl<f64> for Cpu {
     }
 }
 
-impl<E: Dtype> super::MatMatKernel<E> for Cpu
+impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatKernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
@@ -287,7 +288,7 @@ where
     }
 }
 
-impl<E: Dtype> super::MatMatBrKernel<E> for Cpu
+impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatBrKernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
@@ -351,7 +352,7 @@ where
     }
 }
 
-impl<E: Dtype> super::MatMatBatch3Kernel<E> for Cpu
+impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatBatch3Kernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
@@ -417,7 +418,7 @@ where
     }
 }
 
-impl<E: Dtype> super::MatMatBatch4Kernel<E> for Cpu
+impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatBatch4Kernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
