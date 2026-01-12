@@ -8,13 +8,13 @@ use super::{storage_traits::AllocGrad, GhostTensor, Tensor, UniqueId};
 /// *If it looks like a tensor and barks like a tensor, then pet it like a tensor.*
 #[allow(clippy::len_without_is_empty)]
 pub trait Tensorlike<S: Shape, E, D: Storage<E>>:
-    AllocGrad<Gradient = D::Vec> + HasShape<Shape = S>
+    AllocGrad<Gradient = D::OwnedVec> + HasShape<Shape = S>
 {
     fn id(&self) -> UniqueId;
     fn len(&self) -> usize;
     fn strides(&self) -> S::Concrete;
     fn dev(&self) -> &D;
-    fn data(&self) -> Option<&D::Vec>;
+    fn data(&self) -> Option<&D::SharedVec>;
 }
 
 impl<S: Shape, E, D: Storage<E>, T> Tensorlike<S, E, D> for Tensor<S, E, D, T> {
@@ -34,8 +34,8 @@ impl<S: Shape, E, D: Storage<E>, T> Tensorlike<S, E, D> for Tensor<S, E, D, T> {
         &self.device
     }
 
-    fn data(&self) -> Option<&D::Vec> {
-        Some(self.data.as_ref())
+    fn data(&self) -> Option<&D::SharedVec> {
+        Some(&self.data)
     }
 }
 
@@ -56,7 +56,7 @@ impl<S: Shape, E, D: Storage<E>> Tensorlike<S, E, D> for GhostTensor<S, E, D> {
         &self.dev
     }
 
-    fn data(&self) -> Option<&D::Vec> {
+    fn data(&self) -> Option<&D::SharedVec> {
         None
     }
 }

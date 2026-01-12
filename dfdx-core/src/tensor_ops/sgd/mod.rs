@@ -90,9 +90,9 @@ pub trait SgdKernel<E: Dtype>: Storage<E> {
     fn sgd_kernel(
         &self,
         cfg: &SgdConfig,
-        param: &mut Self::Vec,
-        velocity: &mut Self::Vec,
-        grad: &Self::Vec,
+        param: &mut Self::SharedVec,
+        velocity: &mut Self::OwnedVec,
+        grad: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 
@@ -101,12 +101,12 @@ impl SgdConfig {
     pub fn try_update<S: Shape, E: Dtype, D: SgdKernel<E>>(
         &self,
         param: &mut Tensor<S, E, D>,
-        velocity: &mut D::Vec,
-        grad: &D::Vec,
+        velocity: &mut D::OwnedVec,
+        grad: &D::OwnedVec,
     ) -> Result<(), crate::tensor::Error> {
         param.device.sgd_kernel(
             self,
-            std::sync::Arc::make_mut(&mut param.data),
+            &mut param.data,
             velocity,
             grad,
         )

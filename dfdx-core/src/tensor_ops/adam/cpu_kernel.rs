@@ -58,16 +58,16 @@ impl<E: num_traits::Float + Dtype + NotMixedPrecision, A: Allocator + Clone> Ada
         &self,
         t: i32,
         cfg: &AdamConfig,
-        param: &mut Self::Vec,
-        moment1: &mut Self::Vec,
-        moment2: &mut Self::Vec,
-        grad: &Self::Vec,
+        param: &mut Self::SharedVec,
+        moment1: &mut Self::OwnedVec,
+        moment2: &mut Self::OwnedVec,
+        grad: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let betas = cfg.betas.map(E::from_f64).map(Option::unwrap);
         let eps = E::from_f64(cfg.eps).unwrap();
         let lr = E::from_f64(cfg.lr).unwrap();
 
-        for ((p, mut g), (m, v)) in param
+        for ((p, mut g), (m, v)) in Self::SharedVec::make_mut(param)
             .iter_mut()
             .zip(grad.iter().cloned())
             .zip(moment1.iter_mut().zip(moment2.iter_mut()))

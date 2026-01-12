@@ -71,9 +71,9 @@ pub trait Upscale2DKernel<E: Unit, M: UpscaleMethod>: Storage<E> {
         &self,
         op: Upscale2DOp,
         inp: &Tensor<I, E, Self>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: &Tensor<O, E, Self>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 

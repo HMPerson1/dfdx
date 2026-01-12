@@ -81,9 +81,9 @@ impl<E: Dtype, Op: UnaryDerivative<E>, A: Allocator + Clone> UnaryKernel<Op, E> 
         &self,
         op: Op,
         inp: &impl Tensorlike<S, E, Self>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: &impl Tensorlike<S, E, Self>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         match (inp.data(), out.data()) {
             (None, None) => {
@@ -165,10 +165,10 @@ impl<E: Dtype, Op: BinaryDerivative<E>, A: Allocator + Clone> BinaryKernel<Op, E
         &self,
         op: Op,
         lhs: &impl Tensorlike<S, E, Self>,
-        grad_lhs: &mut Self::Vec,
+        grad_lhs: &mut Self::OwnedVec,
         rhs: &impl Tensorlike<S, E, Self>,
-        grad_rhs: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_rhs: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         match (lhs.data(), rhs.data()) {
             (Some(lhs_buf), Some(rhs_buf)) => {
@@ -251,9 +251,9 @@ impl<E: Dtype, Op: UnaryDerivative2<E>, A: Allocator + Clone> UnaryKernel2<Op, E
         &self,
         op: Op,
         inp: <Self::BackInpNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         for (i, x) in grad_inp.iter_mut().enumerate() {
             *x += op.df(
@@ -313,13 +313,13 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
         &self,
         op: Op,
         lhs_ghost: crate::prelude::GhostTensor<S, E, Self>,
-        lhs_data: <Self::BackLhsNeeded as IsNeeded>::Output<std::sync::Arc<Self::Vec>>,
-        grad_lhs: &mut Self::Vec,
+        lhs_data: <Self::BackLhsNeeded as IsNeeded>::Output<Self::SharedVec>,
+        grad_lhs: &mut Self::OwnedVec,
         rhs_ghost: crate::prelude::GhostTensor<S, E, Self>,
-        rhs_data: <Self::BackRhsNeeded as IsNeeded>::Output<std::sync::Arc<Self::Vec>>,
-        grad_rhs: &mut Self::Vec,
+        rhs_data: <Self::BackRhsNeeded as IsNeeded>::Output<Self::SharedVec>,
+        grad_rhs: &mut Self::OwnedVec,
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let mut lhs_idx = NdIndex::new(*lhs_ghost.shape(), lhs_ghost.strides());
         let mut rhs_idx = NdIndex::new(*rhs_ghost.shape(), rhs_ghost.strides());

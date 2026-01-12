@@ -51,10 +51,10 @@ impl<E: Dtype, A: Allocator + Clone> super::ReplaceDimKernel<E> for Cpu<A> {
     fn backward<Src: Shape, Dst: Shape, Idx: Shape>(
         &self,
         inp: &Tensor<Src, E, Self>,
-        grad_inp: &mut <Self as Storage<E>>::Vec,
+        grad_inp: &mut <Self as Storage<E>>::OwnedVec,
         idx: &Tensor<Idx, usize, Self>,
         out: &Tensor<Dst, E, Self>,
-        grad_out: &<Self as Storage<E>>::Vec,
+        grad_out: &<Self as Storage<E>>::OwnedVec,
     ) -> Result<(), Error>
     where
         Src: ReplaceDimTo<Dst, Idx>,
@@ -124,10 +124,10 @@ impl<E: Dtype, A: Allocator + Clone> super::RemoveDimKernel<E> for Cpu<A> {
     fn backward<Src: Shape, Dst: Shape, Idx: Shape>(
         &self,
         inp: &Tensor<Src, E, Self>,
-        grad_inp: &mut <Self as Storage<E>>::Vec,
+        grad_inp: &mut <Self as Storage<E>>::OwnedVec,
         idx: &Tensor<Idx, usize, Self>,
         out: &Tensor<Dst, E, Self>,
-        grad_out: &<Self as Storage<E>>::Vec,
+        grad_out: &<Self as Storage<E>>::OwnedVec,
     ) -> Result<(), Error>
     where
         Src: RemoveDimTo<Dst, Idx>,

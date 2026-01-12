@@ -27,8 +27,8 @@ pub trait RollKernel<E: Dtype>: Storage<E> {
         &self,
         op: RollOp,
         inp: &Tensor<S, E, Self>,
-        grad_inp: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 

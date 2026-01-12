@@ -97,9 +97,9 @@ pub trait ConcatKernel<E: Dtype>: Storage<E> {
         A: ConcatShape<B>;
     fn backward(
         &self,
-        grad_a: &mut Self::Vec,
-        grad_b: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_a: &mut Self::OwnedVec,
+        grad_b: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 

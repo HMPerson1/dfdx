@@ -117,7 +117,7 @@ pub trait StackKernel<E: Dtype>: Storage<E> {
     ) -> Result<Tensor<S::Larger, E, Self>, Error>
     where
         S: AddDim<Num>;
-    fn backward(&self, grad_inp: Vec<&mut Self::Vec>, grad_out: &Self::Vec) -> Result<(), Error>;
+    fn backward(&self, grad_inp: Vec<&mut Self::OwnedVec>, grad_out: &Self::OwnedVec) -> Result<(), Error>;
 }
 
 fn try_stack<'a, S: Shape, E: Dtype, D: StackKernel<E> + 'a, T, Items>(

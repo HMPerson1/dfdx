@@ -3,7 +3,7 @@ use crate::{
     tensor::{unique_id, Cpu, Error, Tensor},
 };
 
-use std::{alloc::Allocator, vec::Vec};
+use std::{alloc::Allocator, sync::Arc, vec::Vec};
 
 impl<E: Dtype, A: Allocator + Clone> super::StackKernel<E> for Cpu<A> {
     fn forward<S: Shape, Num: Dim>(
@@ -31,17 +31,18 @@ impl<E: Dtype, A: Allocator + Clone> super::StackKernel<E> for Cpu<A> {
         }
 
         // copy the data
-        let mut data = self.try_alloc_elem(inp.len() * inp[0].data.len(), E::default())?;
+        let mut data = self.try_alloc_zeros(inp.len() * inp[0].data.len())?;
+        let data_mut = Arc::get_mut(&mut data).unwrap();
         let mut i = 0;
         for item in inp {
             let buf: &[E] = item.data.as_ref();
-            data[i..i + buf.len()].copy_from_slice(buf);
+            data_mut[i..i + buf.len()].copy_from_slice(buf);
             i += buf.len();
         }
 
         Ok(Tensor {
             id: unique_id(),
-            data: std::sync::Arc::new(data),
+            data,
             shape,
             strides,
             device: self.clone(),
@@ -50,8 +51,8 @@ impl<E: Dtype, A: Allocator + Clone> super::StackKernel<E> for Cpu<A> {
     }
     fn backward(
         &self,
-        mut grad_inp: Vec<&mut Self::Vec>,
-        grad_out: &Self::Vec,
+        mut grad_inp: Vec<&mut Self::OwnedVec>,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let mut offset = 0;
         for item in grad_inp.drain(..) {

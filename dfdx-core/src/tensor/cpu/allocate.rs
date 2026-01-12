@@ -9,12 +9,14 @@ use super::{Cpu, LendingIterator};
 
 #[cfg(test)]
 use rand::{distributions::Distribution, Rng};
-use std::{alloc::Allocator, sync::Arc, vec::Vec};
+use std::{alloc::Allocator, mem, slice, sync::Arc, vec::Vec};
 
 impl<A: Allocator + Clone> Cpu<A> {
     #[inline]
-    pub(crate) fn try_alloc_zeros<E: Unit>(&self, numel: usize) -> Result<Vec<E, A>, Error> {
-        self.try_alloc_elem::<E>(numel, Default::default())
+    pub(crate) fn try_alloc_zeros<E: Unit>(&self, numel: usize) -> Result<Arc<[E], A>, Error> {
+        let data = Arc::new_zeroed_slice_in(numel, self.alloc.clone());
+        // SAFETY: E: SafeZeros
+        Ok(unsafe { data.assume_init() })
     }
 
     #[inline]
@@ -22,8 +24,23 @@ impl<A: Allocator + Clone> Cpu<A> {
         &self,
         numel: usize,
         elem: E,
-    ) -> Result<Vec<E, A>, Error> {
-        Ok(std::vec::from_elem_in(elem, numel, self.alloc.clone()))
+    ) -> Result<Arc<[E], A>, Error> {
+        let mut data = Arc::new_uninit_slice_in(numel, self.alloc.clone());
+        for p in Arc::get_mut(&mut data).unwrap() {
+            p.write(elem);
+        }
+        // SAFETY: each element of the slice has been written to
+        Ok(unsafe { data.assume_init() })
+    }
+
+    pub(crate) fn try_alloc_copy<E: Unit>(&self, src: &[E]) -> Result<Arc<[E], A>, Error> {
+        let len = src.len();
+        let mut data = Arc::new_uninit_slice_in(len, self.alloc.clone());
+        // SAFETY: casting to `MaybeUninit` is always safe
+        let src = unsafe { slice::from_raw_parts(src.as_ptr() as *const mem::MaybeUninit<E>, len) };
+        Arc::get_mut(&mut data).unwrap().copy_from_slice(src);
+        // SAFETY: copy_from_slice wrote to each element
+        Ok(unsafe { data.assume_init() })
     }
 }
 
@@ -31,8 +48,7 @@ impl<E: Unit, A: Allocator + Clone> ZerosTensor<E> for Cpu<A> {
     fn try_zeros_like<S: HasShape>(&self, src: &S) -> Result<Tensor<S::Shape, E, Self>, Error> {
         let shape = *src.shape();
         let strides = shape.strides();
-        let data = self.try_alloc_zeros::<E>(shape.num_elements())?;
-        let data = Arc::new(data);
+        let data = self.try_alloc_zeros(shape.num_elements())?;
         Ok(Tensor {
             id: unique_id(),
             data,
@@ -45,8 +61,8 @@ impl<E: Unit, A: Allocator + Clone> ZerosTensor<E> for Cpu<A> {
 }
 
 impl<E: Unit, A: Allocator + Clone> ZeroFillStorage<E> for Cpu<A> {
-    fn try_fill_with_zeros(&self, storage: &mut Self::Vec) -> Result<(), Error> {
-        storage.fill(Default::default());
+    fn try_fill_with_zeros(&self, storage: &mut Self::SharedVec) -> Result<(), Error> {
+        Self::SharedVec::make_mut(storage).fill(Default::default());
         Ok(())
     }
 }
@@ -55,8 +71,7 @@ impl<E: Unit, A: Allocator + Clone> OnesTensor<E> for Cpu<A> {
     fn try_ones_like<S: HasShape>(&self, src: &S) -> Result<Tensor<S::Shape, E, Self>, Error> {
         let shape = *src.shape();
         let strides = shape.strides();
-        let data = self.try_alloc_elem::<E>(shape.num_elements(), E::ONE)?;
-        let data = Arc::new(data);
+        let data = self.try_alloc_elem(shape.num_elements(), E::ONE)?;
         Ok(Tensor {
             id: unique_id(),
             data,
@@ -79,8 +94,7 @@ impl<E: Unit, A: Allocator + Clone> TriangleTensor<E> for Cpu<A> {
         let strides = shape.strides();
         let mut data = self.try_alloc_elem::<E>(shape.num_elements(), val)?;
         let offset = diagonal.into().unwrap_or(0);
-        triangle_mask(&mut data, &shape, true, offset);
-        let data = Arc::new(data);
+        triangle_mask(Arc::get_mut(&mut data).unwrap(), &shape, true, offset);
         Ok(Tensor {
             id: unique_id(),
             data,
@@ -101,8 +115,7 @@ impl<E: Unit, A: Allocator + Clone> TriangleTensor<E> for Cpu<A> {
         let strides = shape.strides();
         let mut data = self.try_alloc_elem::<E>(shape.num_elements(), val)?;
         let offset = diagonal.into().unwrap_or(0);
-        triangle_mask(&mut data, &shape, false, offset);
-        let data = Arc::new(data);
+        triangle_mask(Arc::get_mut(&mut data).unwrap(), &shape, false, offset);
         Ok(Tensor {
             id: unique_id(),
             data,
@@ -115,7 +128,12 @@ impl<E: Unit, A: Allocator + Clone> TriangleTensor<E> for Cpu<A> {
 }
 
 impl<E: Unit, A: Allocator + Clone> OneFillStorage<E> for Cpu<A> {
-    fn try_fill_with_ones(&self, storage: &mut Self::Vec) -> Result<(), Error> {
+    fn try_fill_with_ones(&self, storage: &mut Self::SharedVec) -> Result<(), Error> {
+        Self::SharedVec::make_mut(storage).fill(E::ONE);
+        Ok(())
+    }
+
+    fn try_fill_grad_with_ones(&self, storage: &mut Self::OwnedVec) -> Result<(), Error> {
         storage.fill(E::ONE);
         Ok(())
     }
@@ -139,12 +157,12 @@ impl<E: Unit, A: Allocator + Clone> SampleTensor<E> for Cpu<A> {
     }
     fn try_fill_with_distr<D: Distribution<E>>(
         &self,
-        storage: &mut Self::Vec,
+        storage: &mut Self::SharedVec,
         distr: D,
     ) -> Result<(), Error> {
         {
             let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::from_entropy();
-            for v in storage.iter_mut() {
+            for v in Self::SharedVec::make_mut(storage).iter_mut() {
                 *v = rng.sample(&distr);
             }
         }
@@ -172,12 +190,9 @@ impl<E: Unit, A: Allocator + Clone> TensorFromVec<E> for Cpu<A> {
         if src.len() != num_elements {
             Err(Error::WrongNumElements)
         } else {
-            // TODO: can be more efficient if we propogate `A` to callers
-            let mut data = Vec::new_in(self.alloc.clone());
-            data.extend(src);
             Ok(Tensor {
                 id: unique_id(),
-                data: Arc::new(data),
+                data: self.try_alloc_copy(&src)?,
                 shape,
                 strides: shape.strides(),
                 device: self.clone(),
@@ -208,7 +223,9 @@ impl<E: Unit, A: Allocator + Clone, const M: usize> TensorToArray<Rank1<M>, E> f
     }
 }
 
-impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize> TensorToArray<Rank2<M, N>, E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize> TensorToArray<Rank2<M, N>, E>
+    for Cpu<A>
+{
     type Array = [[E; N]; M];
     fn tensor_to_array<T>(&self, tensor: &Tensor<Rank2<M, N>, E, Self, T>) -> Self::Array {
         let mut out: Self::Array = [[Default::default(); N]; M];
@@ -222,8 +239,8 @@ impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize> TensorToArra
     }
 }
 
-impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize, const O: usize> TensorToArray<Rank3<M, N, O>, E>
-    for Cpu<A>
+impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize, const O: usize>
+    TensorToArray<Rank3<M, N, O>, E> for Cpu<A>
 {
     type Array = [[[E; O]; N]; M];
     fn tensor_to_array<T>(&self, tensor: &Tensor<Rank3<M, N, O>, E, Self, T>) -> Self::Array {
@@ -236,8 +253,14 @@ impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize, const O: usi
     }
 }
 
-impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize, const O: usize, const P: usize>
-    TensorToArray<Rank4<M, N, O, P>, E> for Cpu<A>
+impl<
+        E: Unit,
+        A: Allocator + Clone,
+        const M: usize,
+        const N: usize,
+        const O: usize,
+        const P: usize,
+    > TensorToArray<Rank4<M, N, O, P>, E> for Cpu<A>
 {
     type Array = [[[[E; P]; O]; N]; M];
     fn tensor_to_array<T>(&self, tensor: &Tensor<Rank4<M, N, O, P>, E, Self, T>) -> Self::Array {

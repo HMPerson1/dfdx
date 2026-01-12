@@ -6,8 +6,8 @@ use crate::{
 };
 
 impl<E: Dtype, A: Allocator + Clone> super::AxpyKernel<E> for Cpu<A> {
-    fn forward(&self, a: &mut Self::Vec, alpha: E, b: &Self::Vec, beta: E) -> Result<(), Error> {
-        for (a_i, b_i) in a.iter_mut().zip(b.iter()) {
+    fn forward(&self, a: &mut Self::SharedVec, alpha: E, b: &Self::SharedVec, beta: E) -> Result<(), Error> {
+        for (a_i, b_i) in Self::SharedVec::make_mut(a).iter_mut().zip(b.iter()) {
             *a_i = *a_i * alpha + *b_i * beta;
         }
         Ok(())

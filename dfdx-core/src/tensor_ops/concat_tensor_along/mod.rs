@@ -73,10 +73,10 @@ pub trait ConcatAlongKernel<E: Dtype>: Storage<E> {
         &self,
         ax: usize,
         a: &GhostTensor<A, E, Self>,
-        grad_a: &mut Self::Vec,
+        grad_a: &mut Self::OwnedVec,
         b: &GhostTensor<B, E, Self>,
-        grad_b: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_b: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 

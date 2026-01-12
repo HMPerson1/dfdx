@@ -61,13 +61,13 @@ impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone> SgdKernel<E> for Cpu<A>
     fn sgd_kernel(
         &self,
         cfg: &SgdConfig,
-        param: &mut Self::Vec,
-        velocity: &mut Self::Vec,
-        grad: &Self::Vec,
+        param: &mut Self::SharedVec,
+        velocity: &mut Self::OwnedVec,
+        grad: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let lr = E::from_f64(cfg.lr).unwrap();
 
-        for ((p, mut g), v) in param
+        for ((p, mut g), v) in Self::SharedVec::make_mut(param)
             .iter_mut()
             .zip(grad.iter().cloned())
             .zip(velocity.iter_mut())

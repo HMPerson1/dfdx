@@ -34,10 +34,10 @@ impl<E: Dtype, A: Allocator + Clone> super::ChooseKernel<E> for Cpu<A> {
         &self,
         cond: &Tensor<S, bool, Self>,
         lhs: &Tensor<S, E, Self>,
-        grad_lhs: &mut <Self as Storage<E>>::Vec,
+        grad_lhs: &mut <Self as Storage<E>>::OwnedVec,
         rhs: &Tensor<S, E, Self>,
-        grad_rhs: &mut <Self as Storage<E>>::Vec,
-        grad_out: &<Self as Storage<E>>::Vec,
+        grad_rhs: &mut <Self as Storage<E>>::OwnedVec,
+        grad_out: &<Self as Storage<E>>::OwnedVec,
     ) -> Result<(), Error> {
         let mut lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
         let mut rhs_idx = NdIndex::new(rhs.shape, rhs.strides);

@@ -18,8 +18,8 @@ pub trait ReshapeKernel<E: Dtype>: Storage<E> {
         &self,
         dst: &Dst,
         inp: &Tensor<Src, E, Self>,
-        grad_inp: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 

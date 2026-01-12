@@ -18,7 +18,7 @@ use crate::shapes::Shape;
 /// 4. Access mutable references to arrays
 #[derive(Clone, Debug)]
 pub struct Gradients<E, D: Storage<E>> {
-    gradient_by_id: FxHashMap<UniqueId, D::Vec>,
+    gradient_by_id: FxHashMap<UniqueId, D::OwnedVec>,
     leaf_ids: Option<FxHashSet<UniqueId>>,
 }
 
@@ -42,7 +42,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     pub fn get_or_alloc_mut<S: Shape>(
         &mut self,
         t: &impl Tensorlike<S, E, D>,
-    ) -> Result<&mut D::Vec, Error> {
+    ) -> Result<&mut D::OwnedVec, Error> {
         self.try_alloc_for(t)?;
         Ok(self.get_mut(t))
     }
@@ -77,21 +77,21 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     }
 
     /// Returns a reference to the underlying gradient if found.
-    pub fn get_ref_checked<S: Shape, T>(&self, t: &Tensor<S, E, D, T>) -> Option<&D::Vec> {
+    pub fn get_ref_checked<S: Shape, T>(&self, t: &Tensor<S, E, D, T>) -> Option<&D::OwnedVec> {
         self.gradient_by_id.get(&t.id)
     }
 
     /// Returns a mutable reference to the data associated with `t`.
     ///
     /// **Panics** if data associated with `t` is not found. This indicates an unrecoverable bug.
-    pub(crate) fn get_mut<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> &mut D::Vec {
+    pub(crate) fn get_mut<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> &mut D::OwnedVec {
         self.gradient_by_id.get_mut(&t.id()).unwrap()
     }
 
     /// Returns an immutable reference to the data associated with `t`.
     ///
     /// **Panics** if data associated with `t` is not found. This indicates an unrecoverable bug.
-    pub(crate) fn get_ref<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> &D::Vec {
+    pub(crate) fn get_ref<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> &D::OwnedVec {
         self.gradient_by_id.get(&t.id()).unwrap()
     }
 
@@ -101,10 +101,10 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     /// If no data is associated with `t` yet, this will panic due to an unwrap()
     /// on a .get() to the underlying hashmap.
     pub fn get<S: Shape>(&self, t: &impl Tensorlike<S, E, D>) -> Tensor<S, E, D> {
-        let buf = self.gradient_by_id.get(&t.id()).unwrap().clone();
+        let buf = self.gradient_by_id.get(&t.id()).unwrap();
         Tensor {
             id: unique_id(),
-            data: std::sync::Arc::new(buf),
+            data: t.dev().grad_to_tensor(buf),
             shape: *t.shape(),
             strides: t.strides(),
             device: t.dev().clone(),
@@ -120,7 +120,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         &mut self,
         l: &impl Tensorlike<L, E, D>,
         r: &impl Tensorlike<R, E, D>,
-    ) -> (&mut D::Vec, &D::Vec) {
+    ) -> (&mut D::OwnedVec, &D::OwnedVec) {
         assert_ne!(l.id(), r.id());
         let l_ptr = self.get_mut(l) as *mut _;
         let r_ptr = self.get_ref(r) as *const _;
@@ -135,7 +135,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         l1: &impl Tensorlike<L1, E, D>,
         l2: &impl Tensorlike<L2, E, D>,
         r: &impl Tensorlike<R, E, D>,
-    ) -> (&mut D::Vec, &mut D::Vec, &D::Vec) {
+    ) -> (&mut D::OwnedVec, &mut D::OwnedVec, &D::OwnedVec) {
         assert_ne!(l1.id(), l2.id());
         assert_ne!(l1.id(), r.id());
         assert_ne!(l2.id(), r.id());
@@ -153,17 +153,17 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         &mut self,
         ls: &Vec<impl Tensorlike<L, E, D>>,
         r: &impl Tensorlike<R, E, D>,
-    ) -> (Vec<&mut D::Vec>, &D::Vec) {
+    ) -> (Vec<&mut D::OwnedVec>, &D::OwnedVec) {
         for i in 0..ls.len() {
             assert_ne!(ls[i].id(), r.id());
             for j in (i + 1)..ls.len() {
                 assert_ne!(ls[i].id(), ls[j].id());
             }
         }
-        let l_refs: Vec<&mut D::Vec> = ls
+        let l_refs: Vec<&mut D::OwnedVec> = ls
             .iter()
             .map(|l| {
-                let l_ptr = self.get_mut(l) as *mut D::Vec;
+                let l_ptr = self.get_mut(l) as *mut D::OwnedVec;
                 unsafe { &mut *l_ptr }
             })
             .collect();
@@ -177,6 +177,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 pub struct OwnedTape<'a, E, D: Storage<E>> {
     /// A list of (Time, BackwardOp) pairs. The Time is used to ensure operations
     /// from merged tapes are executed in the correct order.
+    // TODO: use allocator
     pub(crate) operations: Vec<(UniqueId, BackwardOp<'a, E, D>)>,
     pub(crate) gradients: Gradients<E, D>,
 }
@@ -190,7 +191,7 @@ impl<E, D: Storage<E>> Default for OwnedTape<'_, E, D> {
     }
 }
 
-impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<'_, E, D> where <D as Storage<E>>::Vec: std::fmt::Debug {
+impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<'_, E, D> where <D as Storage<E>>::OwnedVec: std::fmt::Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OwnedTape")
             .field("num_operations", &self.operations.len())

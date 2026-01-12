@@ -20,8 +20,8 @@ pub trait SumKernel<E: Dtype>: Storage<E> {
         &self,
         dst: Dst,
         inp: &impl Tensorlike<Src, E, Self>,
-        grad_inp: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>
     where
         Src: ReduceShapeTo<Dst, Ax>;

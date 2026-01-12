@@ -1,4 +1,4 @@
-use std::alloc::Allocator;
+use std::{alloc::Allocator, sync::Arc};
 
 use crate::{
     shapes::{Dtype, Shape},
@@ -16,26 +16,27 @@ impl<E: Dtype, Al: Allocator + Clone> super::ConcatKernel<E> for Cpu<Al> {
     {
         let shape = a.shape.concat_shape(&b.shape);
         let mut data = self.try_alloc_elem(shape.num_elements(), E::default())?;
+        let data_mut = Arc::get_mut(&mut data).unwrap();
         let mut i = 0;
         if a.strides == a.shape.strides() {
             let a: &[E] = a.data.as_ref();
-            data[0..a.len()].copy_from_slice(a);
+            data_mut[0..a.len()].copy_from_slice(a);
             i += a.len();
         } else {
             let a_buf = a.as_vec();
-            data[0..a_buf.len()].copy_from_slice(&a_buf);
+            data_mut[0..a_buf.len()].copy_from_slice(&a_buf);
             i += a_buf.len();
         }
         if b.strides == b.shape.strides() {
             let b: &[E] = b.data.as_ref();
-            data[i..i + b.len()].copy_from_slice(b);
+            data_mut[i..i + b.len()].copy_from_slice(b);
         } else {
             let b_buf = b.as_vec();
-            data[i..i + b_buf.len()].copy_from_slice(&b_buf);
+            data_mut[i..i + b_buf.len()].copy_from_slice(&b_buf);
         }
         Ok(Tensor {
             id: unique_id(),
-            data: std::sync::Arc::new(data),
+            data,
             shape,
             strides: shape.strides(),
             device: self.clone(),
@@ -44,9 +45,9 @@ impl<E: Dtype, Al: Allocator + Clone> super::ConcatKernel<E> for Cpu<Al> {
     }
     fn backward(
         &self,
-        grad_a: &mut Self::Vec,
-        grad_b: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_a: &mut Self::OwnedVec,
+        grad_b: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let mut offset = 0;
         for ga in grad_a.iter_mut() {

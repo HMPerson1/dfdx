@@ -30,8 +30,8 @@ impl<E: Unit, A: Allocator + Clone> SliceKernel<E> for Cpu<A> {
     fn backward<Src: Shape + SliceShape<Slice>, Slice>(
         &self,
         inp: &Tensor<Src, E, Self>,
-        grad_inp: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
         slice: &Slice,
     ) -> Result<(), Error> {
         let dst = inp.shape.slice(slice).unwrap();

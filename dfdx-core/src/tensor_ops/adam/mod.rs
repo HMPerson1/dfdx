@@ -56,10 +56,10 @@ pub trait AdamKernel<E: Dtype>: Storage<E> {
         &self,
         t: i32,
         cfg: &AdamConfig,
-        param: &mut Self::Vec,
-        moment1: &mut Self::Vec,
-        moment2: &mut Self::Vec,
-        grad: &Self::Vec,
+        param: &mut Self::SharedVec,
+        moment1: &mut Self::OwnedVec,
+        moment2: &mut Self::OwnedVec,
+        grad: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 
@@ -68,14 +68,14 @@ impl AdamConfig {
         &self,
         t: i32,
         param: &mut Tensor<S, E, D>,
-        moment1: &mut D::Vec,
-        moment2: &mut D::Vec,
-        grad: &D::Vec,
+        moment1: &mut D::OwnedVec,
+        moment2: &mut D::OwnedVec,
+        grad: &D::OwnedVec,
     ) -> Result<(), crate::tensor::Error> {
         param.device.adam_kernel(
             t,
             self,
-            std::sync::Arc::make_mut(&mut param.data),
+            &mut param.data,
             moment1,
             moment2,
             grad,

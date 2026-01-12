@@ -54,9 +54,9 @@ impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign, A: Allocator +
         &self,
         op: super::Upscale2DOp,
         inp: &Tensor<I, E, Self>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: &Tensor<O, E, Self>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let istr = make_4d::<I>(inp.strides);
         let ostr = make_4d::<O>(out.strides);
@@ -136,9 +136,9 @@ impl<E: Float + Dtype, A: Allocator + Clone> super::Upscale2DKernel<E, Bilinear>
         &self,
         op: super::Upscale2DOp,
         inp: &Tensor<I, E, Self>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: &Tensor<O, E, Self>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let istr = make_4d::<I>(inp.strides);
         let ostr = make_4d::<O>(out.strides);

@@ -53,11 +53,11 @@ pub trait RMSpropKernel<E: Dtype>: Storage<E> {
     fn rmsprop_kernel(
         &self,
         cfg: &RMSpropConfig,
-        param: &mut Self::Vec,
-        momentum: &mut Self::Vec,
-        square_avg: &mut Self::Vec,
-        grad_avg: &mut Self::Vec,
-        grad: &Self::Vec,
+        param: &mut Self::SharedVec,
+        momentum: &mut Self::OwnedVec,
+        square_avg: &mut Self::OwnedVec,
+        grad_avg: &mut Self::OwnedVec,
+        grad: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 
@@ -66,14 +66,14 @@ impl RMSpropConfig {
     pub fn try_update<S: Shape, E: Dtype, D: RMSpropKernel<E>>(
         &self,
         param: &mut Tensor<S, E, D>,
-        momentum: &mut D::Vec,
-        square_avg: &mut D::Vec,
-        grad_avg: &mut D::Vec,
-        grad: &D::Vec,
+        momentum: &mut D::OwnedVec,
+        square_avg: &mut D::OwnedVec,
+        grad_avg: &mut D::OwnedVec,
+        grad: &D::OwnedVec,
     ) -> Result<(), crate::tensor::Error> {
         param.device.rmsprop_kernel(
             self,
-            std::sync::Arc::make_mut(&mut param.data),
+            &mut param.data,
             momentum,
             square_avg,
             grad_avg,

@@ -2,7 +2,7 @@ use crate::{
     shapes::{Dtype, HasShape, Shape},
     tensor::*,
 };
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 pub trait UnaryKernel<Op, E: Dtype>: Storage<E> {
     const BACKWARD_WITHOUT_INP: bool;
@@ -16,9 +16,9 @@ pub trait UnaryKernel<Op, E: Dtype>: Storage<E> {
         &self,
         op: Op,
         inp: &impl Tensorlike<S, E, Self>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: &impl Tensorlike<S, E, Self>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 
@@ -34,10 +34,10 @@ pub trait BinaryKernel<Op, E: Dtype>: Storage<E> {
         &self,
         op: Op,
         lhs: &impl Tensorlike<S, E, Self>,
-        grad_lhs: &mut Self::Vec,
+        grad_lhs: &mut Self::OwnedVec,
         rhs: &impl Tensorlike<S, E, Self>,
-        grad_rhs: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_rhs: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 
@@ -180,9 +180,9 @@ pub trait UnaryKernel2<Op, E: Dtype>: Storage<E> {
         &self,
         op: Op,
         inp: <Self::BackInpNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
-        grad_inp: &mut Self::Vec,
+        grad_inp: &mut Self::OwnedVec,
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 
@@ -200,13 +200,13 @@ pub trait BinaryKernel2<Op, E: Dtype>: Storage<E> {
         &self,
         op: Op,
         lhs_ghost: GhostTensor<S, E, Self>,
-        lhs_data: <Self::BackLhsNeeded as IsNeeded>::Output<Arc<Self::Vec>>,
-        grad_lhs: &mut Self::Vec,
+        lhs_data: <Self::BackLhsNeeded as IsNeeded>::Output<Self::SharedVec>,
+        grad_lhs: &mut Self::OwnedVec,
         rhs_ghost: GhostTensor<S, E, Self>,
-        rhs_data: <Self::BackRhsNeeded as IsNeeded>::Output<Arc<Self::Vec>>,
-        grad_rhs: &mut Self::Vec,
+        rhs_data: <Self::BackRhsNeeded as IsNeeded>::Output<Self::SharedVec>,
+        grad_rhs: &mut Self::OwnedVec,
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
-        grad_out: &Self::Vec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error>;
 }
 

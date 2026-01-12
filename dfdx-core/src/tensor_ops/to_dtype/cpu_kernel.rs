@@ -1,5 +1,5 @@
 use num_traits::AsPrimitive;
-use std::{alloc::Allocator, sync::Arc, vec::Vec};
+use std::{alloc::Allocator, vec::Vec};
 
 use crate::prelude::{Cpu, Error, Shape, Tensor, Unit};
 
@@ -10,7 +10,8 @@ impl<E1: Unit + AsPrimitive<E2>, E2: Unit, A: Allocator + Clone> super::ToDtypeK
 
         Ok(Tensor {
             id: crate::prelude::unique_id(),
-            data: Arc::new(data),
+            // extra memcpy, oh well
+            data: data.into(),
             shape: inp.shape,
             strides: inp.strides,
             device: inp.device.clone(),

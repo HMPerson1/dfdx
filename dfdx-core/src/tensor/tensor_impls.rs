@@ -4,8 +4,6 @@ use rand::distributions::Distribution;
 use super::*;
 use crate::shapes::*;
 
-use std::sync::Arc;
-
 /// The single tensor struct that stores nd arrays and tapes.
 ///
 /// See module level documentation on how to create and use tensors.
@@ -32,7 +30,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct Tensor<S: Shape, E, D: Storage<E>, T = NoneTape> {
     pub(crate) id: UniqueId,
-    pub(crate) data: Arc<D::Vec>,
+    pub(crate) data: D::SharedVec,
     pub(crate) shape: S,
     pub(crate) strides: S::Concrete,
     pub(crate) device: D,
@@ -210,7 +208,7 @@ impl<S: Shape, E: Dtype, D: ZeroFillStorage<E>, T> Tensor<S, E, D, T> {
     /// Fallible version of [Tensor::fill_with_zeros]
     pub fn try_fill_with_zeros(&mut self) -> Result<(), Error> {
         self.device
-            .try_fill_with_zeros(Arc::make_mut(&mut self.data))
+            .try_fill_with_zeros(&mut self.data)
     }
 }
 
@@ -222,7 +220,7 @@ impl<S: Shape, E: Dtype, D: OneFillStorage<E>, T> Tensor<S, E, D, T> {
     /// Fallible version of [Tensor::fill_with_ones]
     pub fn try_fill_with_ones(&mut self) -> Result<(), Error> {
         self.device
-            .try_fill_with_ones(Arc::make_mut(&mut self.data))
+            .try_fill_with_ones(&mut self.data)
     }
 }
 
@@ -239,7 +237,7 @@ impl<S: Shape, E: Unit, D: SampleTensor<E>, T> Tensor<S, E, D, T> {
         distr: Distr,
     ) -> Result<(), Error> {
         self.device
-            .try_fill_with_distr(Arc::make_mut(&mut self.data), distr)
+            .try_fill_with_distr(&mut self.data, distr)
     }
 }
 

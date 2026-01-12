@@ -42,10 +42,10 @@ impl<E: Dtype, Al: Allocator + Clone> super::ConcatAlongKernel<E> for Cpu<Al> {
         &self,
         ax: usize,
         a: &GhostTensor<A, E, Self>,
-        grad_a: &mut Self::Vec,
+        grad_a: &mut Self::OwnedVec,
         b: &GhostTensor<B, E, Self>,
-        grad_b: &mut Self::Vec,
-        grad_out: &Self::Vec,
+        grad_b: &mut Self::OwnedVec,
+        grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let mut a_idx = NdIndex::new(a.shape, a.strides);
         let mut b_idx = NdIndex::new(b.shape, b.strides);

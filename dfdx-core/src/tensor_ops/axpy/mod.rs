@@ -43,16 +43,16 @@ impl<S: Shape, E: Dtype, D: AxpyKernel<E>> Tensor<S, E, D> {
         assert_eq!(self.shape, b.shape);
         assert_eq!(self.strides, b.strides, "Strides must be equal for axpy");
         self.device.clone().forward(
-            std::sync::Arc::make_mut(&mut self.data),
+            &mut self.data,
             E::from_f64(alpha.into()).unwrap(),
-            b.data.as_ref(),
+            &b.data,
             E::from_f64(beta.into()).unwrap(),
         )
     }
 }
 
 pub trait AxpyKernel<E: Dtype>: Storage<E> {
-    fn forward(&self, a: &mut Self::Vec, alpha: E, b: &Self::Vec, beta: E) -> Result<(), Error>;
+    fn forward(&self, a: &mut Self::SharedVec, alpha: E, b: &Self::SharedVec, beta: E) -> Result<(), Error>;
 }
 
 #[cfg(test)]

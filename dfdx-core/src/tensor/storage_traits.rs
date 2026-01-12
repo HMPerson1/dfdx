@@ -15,19 +15,16 @@ pub trait RandomU64 {
 
 /// Something that can store nd arrays for a given [Shape] and [Dtype]
 pub trait Storage<E>: Clone {
-    /// Generic Storage type
-    type Vec: Clone;
+    type SharedVec: Clone;
+    type OwnedVec: Clone;
 
-    /// Allocates a gradient for the given nd array
-    fn try_alloc_grad(&self, storage: &Self::Vec) -> Result<Self::Vec, Error> {
-        self.try_alloc_len(self.len(storage))
-    }
+    fn try_alloc_grad(&self, len: usize) -> Result<Self::OwnedVec, Error>;
 
-    fn try_alloc_len(&self, len: usize) -> Result<Self::Vec, Error>;
+    fn grad_to_tensor(&self, v: &Self::OwnedVec) -> Self::SharedVec;
 
     fn tensor_to_vec<S: Shape, T>(&self, tensor: &Tensor<S, E, Self, T>) -> Vec<E>;
 
-    fn len(&self, v: &Self::Vec) -> usize;
+    fn len(&self, v: &Self::SharedVec) -> usize;
 }
 
 pub trait Synchronize {
@@ -85,9 +82,9 @@ pub trait AllocGrad {
 }
 
 impl<S: Shape, E, D: Storage<E>, T> AllocGrad for Tensor<S, E, D, T> {
-    type Gradient = D::Vec;
+    type Gradient = D::OwnedVec;
     fn try_alloc_grad(&self) -> Result<Self::Gradient, Error> {
-        self.device.try_alloc_grad(self.data.as_ref())
+        self.device.try_alloc_grad(self.device.len(&self.data))
     }
 }
 
@@ -169,7 +166,7 @@ pub trait ZerosTensor<E>: Storage<E> {
 }
 
 pub trait ZeroFillStorage<E>: Storage<E> {
-    fn try_fill_with_zeros(&self, storage: &mut Self::Vec) -> Result<(), Error>;
+    fn try_fill_with_zeros(&self, storage: &mut Self::SharedVec) -> Result<(), Error>;
 }
 
 /// Construct tensors filled with ones.
@@ -214,7 +211,8 @@ pub trait OnesTensor<E>: Storage<E> {
 }
 
 pub trait OneFillStorage<E>: Storage<E> {
-    fn try_fill_with_ones(&self, storage: &mut Self::Vec) -> Result<(), Error>;
+    fn try_fill_with_ones(&self, storage: &mut Self::SharedVec) -> Result<(), Error>;
+    fn try_fill_grad_with_ones(&self, storage: &mut Self::OwnedVec) -> Result<(), Error>;
 }
 
 /// Build upper & lower triangle tensors.
@@ -416,7 +414,7 @@ pub trait SampleTensor<E>: Storage<E> {
     /// Fills tensor `Storage<E>` with data from a given distribution
     fn try_fill_with_distr<D: Distribution<E>>(
         &self,
-        storage: &mut Self::Vec,
+        storage: &mut Self::SharedVec,
         distr: D,
     ) -> Result<(), Error>;
 }

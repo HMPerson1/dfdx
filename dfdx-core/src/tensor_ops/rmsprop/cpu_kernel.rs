@@ -77,16 +77,16 @@ impl<E: num_traits::Float + Dtype + NotMixedPrecision, A: Allocator + Clone> RMS
     fn rmsprop_kernel(
         &self,
         cfg: &RMSpropConfig,
-        param: &mut Self::Vec,
-        momentum: &mut Self::Vec,
-        square_avg: &mut Self::Vec,
-        grad_avg: &mut Self::Vec,
-        grad: &Self::Vec,
+        param: &mut Self::SharedVec,
+        momentum: &mut Self::OwnedVec,
+        square_avg: &mut Self::OwnedVec,
+        grad_avg: &mut Self::OwnedVec,
+        grad: &Self::OwnedVec,
     ) -> Result<(), Error> {
         let alpha = E::from_f64(cfg.alpha).unwrap();
         let eps = E::from_f64(cfg.eps).unwrap();
         let lr = E::from_f64(cfg.lr).unwrap();
-        for ((p, mut g), (s_avg, (g_avg, m))) in param.iter_mut().zip(grad.iter().cloned()).zip(
+        for ((p, mut g), (s_avg, (g_avg, m))) in Self::SharedVec::make_mut(param).iter_mut().zip(grad.iter().cloned()).zip(
             square_avg
                 .iter_mut()
                 .zip(grad_avg.iter_mut().zip(momentum.iter_mut())),
