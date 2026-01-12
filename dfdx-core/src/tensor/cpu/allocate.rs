@@ -5,14 +5,15 @@ use crate::{
     tensor::{masks::triangle_mask, storage_traits::*, unique_id, Error, Tensor},
 };
 
-use super::{CachableVec, Cpu, LendingIterator};
+use super::{Cpu, LendingIterator};
 
+#[cfg(test)]
 use rand::{distributions::Distribution, Rng};
 use std::{sync::Arc, vec::Vec};
 
 impl Cpu {
     #[inline]
-    pub(crate) fn try_alloc_zeros<E: Unit>(&self, numel: usize) -> Result<CachableVec<E>, Error> {
+    pub(crate) fn try_alloc_zeros<E: Unit>(&self, numel: usize) -> Result<Vec<E>, Error> {
         self.try_alloc_elem::<E>(numel, Default::default())
     }
 
@@ -21,36 +22,8 @@ impl Cpu {
         &self,
         numel: usize,
         elem: E,
-    ) -> Result<CachableVec<E>, Error> {
-        let data: Result<Vec<E>, Error> = self.cache.try_pop::<E>(numel).map_or_else(
-            #[cfg(feature = "fast-alloc")]
-            || Ok(std::vec![elem; numel]),
-            #[cfg(not(feature = "fast-alloc"))]
-            || {
-                let mut data: Vec<E> = Vec::new();
-                data.try_reserve(numel).map_err(|_| Error::OutOfMemory)?;
-                data.resize(numel, elem);
-                Ok(data)
-            },
-            |allocation| {
-                // SAFETY:
-                // - ✅ "ptr must have been allocated using the global allocator, such as via the alloc::alloc function."
-                // - ✅ handled by tensor cache "T needs to have the same alignment as what ptr was allocated with."
-                // - ✅ handled by tensor cache "The size of T times the capacity needs to be the same size as the pointer was allocated with."
-                // - ✅ "length needs to be less than or equal to capacity."
-                // - ✅ all the dtypes for this are builtin numbers "The first length values must be properly initialized values of type T."
-                // - ✅ "capacity needs to be the capacity that the pointer was allocated with."
-                // - ✅ "The allocated size in bytes must be no larger than isize::MAX. See the safety documentation of pointer::offset."
-                let mut data = unsafe { Vec::from_raw_parts(allocation.0 as *mut E, numel, numel) };
-                data.fill(elem);
-                Ok(data)
-            },
-        );
-
-        Ok(CachableVec {
-            data: data?,
-            cache: self.cache.clone(),
-        })
+    ) -> Result<Vec<E>, Error> {
+        Ok(std::vec![elem; numel])
     }
 }
 
@@ -148,6 +121,7 @@ impl<E: Unit> OneFillStorage<E> for Cpu {
     }
 }
 
+#[cfg(test)]
 impl<E: Unit> SampleTensor<E> for Cpu {
     fn try_sample_like<S: HasShape, D: Distribution<E>>(
         &self,
@@ -156,10 +130,7 @@ impl<E: Unit> SampleTensor<E> for Cpu {
     ) -> Result<Tensor<S::Shape, E, Self>, Error> {
         let mut tensor = self.try_zeros_like(src)?;
         {
-            #[cfg(not(feature = "no-std"))]
-            let mut rng = self.rng.lock().unwrap();
-            #[cfg(feature = "no-std")]
-            let mut rng = self.rng.lock();
+            let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::from_entropy();
             for v in Arc::get_mut(&mut tensor.data).unwrap().iter_mut() {
                 *v = rng.sample(&distr);
             }
@@ -172,10 +143,7 @@ impl<E: Unit> SampleTensor<E> for Cpu {
         distr: D,
     ) -> Result<(), Error> {
         {
-            #[cfg(not(feature = "no-std"))]
-            let mut rng = self.rng.lock().unwrap();
-            #[cfg(feature = "no-std")]
-            let mut rng = self.rng.lock();
+            let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::from_entropy();
             for v in storage.iter_mut() {
                 *v = rng.sample(&distr);
             }
@@ -204,10 +172,6 @@ impl<E: Unit> TensorFromVec<E> for Cpu {
         if src.len() != num_elements {
             Err(Error::WrongNumElements)
         } else {
-            let src = CachableVec {
-                data: src,
-                cache: self.cache.clone(),
-            };
             Ok(Tensor {
                 id: unique_id(),
                 data: Arc::new(src),

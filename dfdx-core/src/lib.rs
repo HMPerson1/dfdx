@@ -112,7 +112,6 @@ extern crate alloc;
 extern crate no_std_compat as std;
 extern crate self as dfdx_core;
 
-pub mod data;
 pub mod dtypes;
 pub mod losses;
 pub mod nn_traits;
@@ -168,6 +167,7 @@ pub(crate) mod tests {
             rhs: &Self,
             tolerance: Self::Elem,
         ) -> Option<(Self::Elem, Self::Elem)>;
+        #[allow(unused)]
         fn assert_close(&self, rhs: &Self, tolerance: Self::Elem)
         where
             Self: std::fmt::Debug,

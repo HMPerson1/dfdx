@@ -1,4 +1,6 @@
+#[cfg(test)]
 use rand::distributions::Distribution;
+#[cfg(test)]
 use rand_distr::{Standard, StandardNormal};
 use std::vec::Vec;
 
@@ -351,6 +353,7 @@ pub trait TriangleTensor<E>: Storage<E> {
 }
 
 /// Constructs tensors filled with random values from a given distribution.
+#[cfg(test)]
 pub trait SampleTensor<E>: Storage<E> {
     /// Samples a const tensor from a uniform distribution
     fn sample_uniform<S: ConstShape>(&self) -> Tensor<S, E, Self>

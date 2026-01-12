@@ -2,7 +2,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     // If on nightly, enable "nightly" feature
-    maybe_enable_nightly();
+    // maybe_enable_nightly();
 
     #[cfg(feature = "cuda")]
     cuda::set_include_dir();
@@ -14,6 +14,7 @@ fn main() {
     webgpu::build_spv();
 }
 
+#[allow(unused)]
 fn maybe_enable_nightly() {
     let cmd = std::env::var_os("RUSTC").unwrap_or_else(|| std::ffi::OsString::from("rustc"));
     let out = std::process::Command::new(cmd).arg("-vV").output().unwrap();

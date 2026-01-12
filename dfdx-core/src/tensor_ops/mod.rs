@@ -150,7 +150,6 @@ mod utilities;
 pub use utilities::*;
 
 mod abs;
-mod accurate_gelu;
 mod adam;
 mod add;
 mod attention_reshape;
@@ -167,7 +166,6 @@ mod concat_shape_along;
 mod concat_tensor_along;
 mod cos;
 mod div;
-mod dropout;
 mod exp;
 mod fast_gelu;
 mod huber_error;
@@ -213,7 +211,6 @@ mod upscale2d;
 mod var_to;
 
 pub use abs::abs;
-pub use accurate_gelu::accurate_gelu;
 pub use adam::AdamConfig;
 pub use add::{add, TryAdd};
 pub use attention_reshape::TryAttentionReshape;
@@ -232,7 +229,6 @@ pub use concat_shape_along::TryConcatShapeAlong;
 pub use concat_tensor_along::TryConcatTensorAlong;
 pub use cos::cos;
 pub use div::{div, TryDiv};
-pub use dropout::dropout;
 pub use exp::exp;
 pub use fast_gelu::fast_gelu;
 #[allow(deprecated)]
@@ -285,9 +281,6 @@ pub use utilities::{
     cpu_kernels::{BinaryDerivative2, UnaryDerivative2},
     ops::{try_binary_op2, try_unary_op2, Ignored, Needed},
 };
-
-mod conv1d;
-pub use conv1d::TryConv1D;
 
 #[cfg(feature = "nightly")]
 mod conv2d;

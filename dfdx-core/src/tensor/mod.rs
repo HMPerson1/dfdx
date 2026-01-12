@@ -136,7 +136,6 @@
 //! 2. Disable the cache entirely by calling [Cache::disable_cache()]. This will
 //! empty out any existing allocations and prevent any new ones from being cached.
 
-pub(crate) mod cache;
 pub(crate) mod cpu;
 #[cfg(feature = "cuda")]
 pub(crate) mod cuda;
@@ -181,7 +180,9 @@ pub type AutoDevice = Webgpu;
 
 pub use storage_traits::{AsArray, CopySlice, TensorFrom, TensorFromVec, TensorToArray};
 pub use storage_traits::{Cache, RandomU64, Storage, Synchronize};
-pub use storage_traits::{OnesTensor, SampleTensor, TriangleTensor, ZerosTensor};
+pub use storage_traits::{OnesTensor, TriangleTensor, ZerosTensor};
+#[cfg(test)]
+pub use storage_traits::SampleTensor;
 
 pub use tensor_impls::{PutTape, SplitTape, Tensor, Trace, WithEmptyTape};
 pub use tensor_impls::{Tensor0D, Tensor1D, Tensor2D, Tensor3D, Tensor4D, Tensor5D, Tensor6D};

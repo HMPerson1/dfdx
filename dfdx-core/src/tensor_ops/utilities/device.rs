@@ -1,13 +1,12 @@
 use super::super::ops::{BinaryKernel, UnaryKernel};
 use crate::{
     dtypes::*,
-    tensor::{CopySlice, RandomU64, Storage},
+    tensor::{CopySlice, Storage},
 };
 
 /// A [Storage] that requires all the tensor ops implementations
 pub trait Device<E: Dtype>:
     Storage<E>
-    + RandomU64
     + CopySlice<E>
     + crate::tensor::TensorFromVec<E>
     + crate::tensor::TensorFromVec<usize>
@@ -29,7 +28,6 @@ pub trait Device<E: Dtype>:
     // allocation
     + crate::tensor::ZerosTensor<E>
     + crate::tensor::OnesTensor<E>
-    + crate::tensor::SampleTensor<E>
     + crate::tensor::OneFillStorage<E>
     + crate::tensor::ZeroFillStorage<E>
 
@@ -83,14 +81,12 @@ pub trait Device<E: Dtype>:
     + UnaryKernel<super::super::abs::AbsKernelOp, E>
     + UnaryKernel<super::super::clamp::ClampKernelOp<E>, E>
     + UnaryKernel<super::super::cos::CosKernelOp, E>
-    + super::super::dropout::DropoutKernel<E>
     + UnaryKernel<super::super::exp::ExpKernelOp, E>
     + UnaryKernel<super::super::ln::LnKernelOp, E>
     + UnaryKernel<super::super::nans_to::NansToKernelOp<E>, E>
     + UnaryKernel<super::super::negate::NegateKernelOp, E>
     + UnaryKernel<super::super::relu::ReLUKernelOp, E>
     + UnaryKernel<super::super::fast_gelu::FastGeLUKernelOp, E>
-    + UnaryKernel<super::super::accurate_gelu::AccurateGeLUKernelOp, E>
     + UnaryKernel<super::super::sigmoid::SigmoidKernelOp, E>
     + UnaryKernel<super::super::sin::SinKernelOp, E>
     + UnaryKernel<super::super::sqrt::SqrtKernelOp, E>
@@ -112,9 +108,6 @@ pub trait Device<E: Dtype>:
     + BinaryKernel<super::super::maximum::MaximumKernelOp, E>
     + BinaryKernel<super::super::minimum::MinimumKernelOp, E>
     + crate::tensor_ops::axpy::AxpyKernel<E>
-
-    // conv1d
-    + super::super::conv1d::Conv1DKernel<E>
 {
 }
 

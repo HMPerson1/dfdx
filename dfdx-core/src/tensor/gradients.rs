@@ -1,7 +1,7 @@
 //! Implementations of [OwnedTape], [NoneTape], and generic Nd array containers via [Gradients].
 #![allow(clippy::type_complexity)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{boxed::Box, vec::Vec};
 
 use super::tensorlike::Tensorlike;
@@ -18,10 +18,8 @@ use crate::shapes::Shape;
 /// 4. Access mutable references to arrays
 #[derive(Clone, Debug)]
 pub struct Gradients<E, D: Storage<E>> {
-    /// Using BTreeMap for no-std support
-    gradient_by_id: BTreeMap<UniqueId, D::Vec>,
-    /// Using BTreeSet for no-std support
-    leaf_ids: Option<BTreeSet<UniqueId>>,
+    gradient_by_id: FxHashMap<UniqueId, D::Vec>,
+    leaf_ids: Option<FxHashSet<UniqueId>>,
 }
 
 impl<E, D: Storage<E>> Gradients<E, D> {
@@ -51,7 +49,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 
     /// Inserts a gradient for `t`
     pub fn try_alloc_for<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> Result<(), Error> {
-        if let std::collections::btree_map::Entry::Vacant(e) = self.gradient_by_id.entry(t.id()) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.gradient_by_id.entry(t.id()) {
             e.insert(t.try_alloc_grad()?);
         }
         Ok(())
@@ -311,12 +309,12 @@ impl<E, D: Storage<E>> Merge<Self> for std::sync::Arc<std::sync::Mutex<OwnedTape
             let mut rhs = other.lock().unwrap();
             lhs.gradients
                 .gradient_by_id
-                .append(&mut rhs.gradients.gradient_by_id);
+                .extend(std::mem::take(&mut rhs.gradients.gradient_by_id));
             if let Some(leafs) = &mut rhs.gradients.leaf_ids {
                 lhs.gradients
                     .leaf_ids
                     .get_or_insert_with(Default::default)
-                    .append(leafs);
+                    .extend(std::mem::take(leafs));
             }
             lhs.operations.append(&mut rhs.operations);
         }

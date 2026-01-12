@@ -1,5 +1,3 @@
-use rand::{distributions::Distribution, Rng};
-
 /// Wrapper type around the storage type. Use like `AMP<f16>` or `AMP<bf16>`.
 ///
 /// This causes some tensor operations to cast the type to a higher precision
@@ -538,56 +536,5 @@ impl<F: num_traits::Float> num_traits::Float for AMP<F> {
 
     fn integer_decode(self) -> (u64, i16, i8) {
         self.0.integer_decode()
-    }
-}
-
-macro_rules! impl_distribution {
-    ($Distr:ty) => {
-        impl<F> Distribution<AMP<F>> for $Distr
-        where
-            Self: Distribution<F>,
-        {
-            fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> AMP<F> {
-                AMP(<Self as Distribution<F>>::sample(self, rng))
-            }
-        }
-    };
-}
-
-impl_distribution!(rand_distr::Standard);
-impl_distribution!(rand_distr::StandardNormal);
-impl_distribution!(rand_distr::Exp1);
-impl_distribution!(rand_distr::Open01);
-impl_distribution!(rand_distr::OpenClosed01);
-
-#[derive(Debug, Clone, Copy)]
-pub struct AMPSampler<F: rand_distr::uniform::SampleUniform>(F::Sampler);
-
-impl<F: rand_distr::uniform::SampleUniform> rand_distr::uniform::SampleUniform for AMP<F> {
-    type Sampler = AMPSampler<F>;
-}
-
-impl<F: rand_distr::uniform::SampleUniform> rand_distr::uniform::UniformSampler for AMPSampler<F> {
-    type X = AMP<F>;
-    fn new<B1, B2>(low: B1, high: B2) -> Self
-    where
-        B1: rand_distr::uniform::SampleBorrow<Self::X> + Sized,
-        B2: rand_distr::uniform::SampleBorrow<Self::X> + Sized,
-    {
-        let l = low.borrow();
-        let h = high.borrow();
-        Self(F::Sampler::new(&l.0, &h.0))
-    }
-    fn new_inclusive<B1, B2>(low: B1, high: B2) -> Self
-    where
-        B1: rand_distr::uniform::SampleBorrow<Self::X> + Sized,
-        B2: rand_distr::uniform::SampleBorrow<Self::X> + Sized,
-    {
-        let l = low.borrow();
-        let h = high.borrow();
-        Self(F::Sampler::new_inclusive(&l.0, &h.0))
-    }
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Self::X {
-        AMP(self.0.sample(rng))
     }
 }

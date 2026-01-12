@@ -17,19 +17,19 @@ impl<E: Dtype> super::ConcatKernel<E> for Cpu {
         let mut i = 0;
         if a.strides == a.shape.strides() {
             let a: &[E] = a.data.as_ref();
-            data.data[0..a.len()].copy_from_slice(a);
+            data[0..a.len()].copy_from_slice(a);
             i += a.len();
         } else {
             let a_buf = a.as_vec();
-            data.data[0..a_buf.len()].copy_from_slice(&a_buf);
+            data[0..a_buf.len()].copy_from_slice(&a_buf);
             i += a_buf.len();
         }
         if b.strides == b.shape.strides() {
             let b: &[E] = b.data.as_ref();
-            data.data[i..i + b.len()].copy_from_slice(b);
+            data[i..i + b.len()].copy_from_slice(b);
         } else {
             let b_buf = b.as_vec();
-            data.data[i..i + b_buf.len()].copy_from_slice(&b_buf);
+            data[i..i + b_buf.len()].copy_from_slice(&b_buf);
         }
         Ok(Tensor {
             id: unique_id(),

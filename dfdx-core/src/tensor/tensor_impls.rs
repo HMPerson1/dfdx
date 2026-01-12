@@ -1,3 +1,4 @@
+#[cfg(test)]
 use rand::distributions::Distribution;
 
 use super::*;
@@ -212,6 +213,7 @@ impl<S: Shape, E: Dtype, D: OneFillStorage<E>, T> Tensor<S, E, D, T> {
     }
 }
 
+#[cfg(test)]
 impl<S: Shape, E: Unit, D: SampleTensor<E>, T> Tensor<S, E, D, T> {
     /// Fills the tensor with random data from the distribution
     pub fn fill_with_distr<Distr: Distribution<E>>(&mut self, distr: Distr) {
