@@ -24,14 +24,14 @@ pub struct PowfKernelOp<E>(E);
 /// let t = dev.tensor([-1.0, 0.0, 1.0, 2.0]);
 /// let r = t.powf(-3.2);
 /// ```
-pub fn powf<S: Shape, E: Dtype, D: UnaryKernel<PowfKernelOp<E>, E>, T: Tape<E, D>>(
+pub fn powf<'a, S: Shape, E: Dtype, D: UnaryKernel<PowfKernelOp<E>, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
     exponent: impl Into<f64>,
 ) -> Tensor<S, E, D, T> {
     t.powf(exponent)
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<PowfKernelOp<E>, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<PowfKernelOp<E>, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [powf]
     pub fn powf(self, exponent: impl Into<f64>) -> Self {
         self.try_powf(exponent).unwrap()
@@ -50,14 +50,14 @@ impl<S: Shape, E: Dtype, D: UnaryKernel<PowfKernelOp<E>, E>, T: Tape<E, D>> Tens
 /// let t = dev.tensor([-1.0, 0.0, 1.0, 2.0]);
 /// let r = t.powi(3);
 /// ```
-pub fn powi<S: Shape, E: Dtype, D: UnaryKernel<PowiKernelOp, E>, T: Tape<E, D>>(
+pub fn powi<'a, S: Shape, E: Dtype, D: UnaryKernel<PowiKernelOp, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
     exponent: i32,
 ) -> Tensor<S, E, D, T> {
     t.powi(exponent)
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<PowiKernelOp, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<PowiKernelOp, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [powi]
     pub fn powi(self, exponent: i32) -> Self {
         self.try_powi(exponent).unwrap()

@@ -15,14 +15,14 @@ use super::{BroadcastTo, Device, MeanTo, TryAdd, TryDiv, TrySub};
 /// let t: Tensor<Rank2<2, 3>, f32, _> = dev.zeros();
 /// let _ = t.normalize::<Axis<1>>(1e-5);
 /// ```
-pub fn normalize<Ax: Axes, S: Shape + ReduceShape<Ax>, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn normalize<'a, Ax: Axes, S: Shape + ReduceShape<Ax>, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
     epsilon: impl Into<f64>,
 ) -> Tensor<S, E, D, T> {
     t.normalize::<Ax>(epsilon)
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [normalize]
     pub fn normalize<Ax: Axes>(self, epsilon: impl Into<f64>) -> Self
     where

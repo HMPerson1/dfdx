@@ -69,7 +69,7 @@ impl<S: Shape, E: Dtype, D: Storage<E>, T> HasDtype for Tensor<S, E, D, T> {
 }
 
 /// Something that can trace gradients
-pub trait Trace<E, D: Storage<E>>: Clone {
+pub trait Trace<'a, E, D: Storage<E>>: Clone {
     type Traced;
     /// Start tracking gradients, clones self. The gradients will never free
     /// temporary gradients - See [Gradients::leaky()] for more info.
@@ -88,10 +88,10 @@ pub trait Trace<E, D: Storage<E>>: Clone {
     fn traced(self, gradients: Gradients<E, D>) -> Self::Traced;
 }
 
-impl<S: Shape, E: Unit, F: Unit, D: Storage<F> + Storage<E>> Trace<E, D>
+impl<'a, S: Shape, E: Unit, F: Unit, D: Storage<F> + Storage<E>> Trace<'a, E, D>
     for Tensor<S, F, D, NoneTape>
 {
-    type Traced = Tensor<S, F, D, OwnedTape<E, D>>;
+    type Traced = Tensor<S, F, D, OwnedTape<'a, E, D>>;
     fn leaky_traced(self) -> Self::Traced {
         self.put_tape(Default::default())
     }
@@ -105,7 +105,7 @@ impl<S: Shape, E: Unit, F: Unit, D: Storage<F> + Storage<E>> Trace<E, D>
 
 impl<S: Shape, E, D: Storage<E>, T> Tensor<S, E, D, T> {
     /// Clone and insert a new tape of type `New` into the tensor
-    pub fn retaped<New: Tape<E, D>>(&self) -> Tensor<S, E, D, New> {
+    pub fn retaped<'a, New: Tape<'a, E, D>>(&self) -> Tensor<S, E, D, New> {
         Tensor {
             id: self.id,
             data: self.data.clone(),

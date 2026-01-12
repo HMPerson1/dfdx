@@ -72,7 +72,7 @@ impl super::SumKernel<crate::dtypes::AMP<crate::dtypes::f16>> for Cpu {
     }
 }
 
-impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone + 'static> super::SumKernel<E> for Cpu<A> {
+impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone> super::SumKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Ax: Axes>(
         &self,
         dst: Dst,

@@ -25,7 +25,7 @@ impl Default for Cpu {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> Storage<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> Storage<E> for Cpu<A> {
     type Vec = Vec<E, A>;
 
     fn try_alloc_len(&self, len: usize) -> Result<Self::Vec, Error> {

@@ -5,7 +5,7 @@ use crate::{
 
 use std::{alloc::Allocator, vec::Vec};
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::StackKernel<E> for Cpu<A> {
+impl<E: Dtype, A: Allocator + Clone> super::StackKernel<E> for Cpu<A> {
     fn forward<S: Shape, Num: Dim>(
         &self,
         num: Num,

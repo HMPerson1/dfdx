@@ -63,7 +63,7 @@ pub trait MaxTo: Sized + HasShape {
         Self::Shape: ReduceShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: MaxReduceKernel<E>, T: Tape<E, D>> MaxTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: MaxReduceKernel<E> + 'a, T: Tape<'a, E, D>> MaxTo for Tensor<S, E, D, T> {
     fn try_max<Dst: Shape, Ax: Axes>(self) -> Result<Self::WithShape<Dst>, Error>
     where
         Self::Shape: ReduceShapeTo<Dst, Ax>,

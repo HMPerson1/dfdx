@@ -5,7 +5,7 @@ use crate::{
     tensor::{cpu::NdIndex, *},
 };
 
-impl<E: Dtype, Al: Allocator + Clone + 'static> super::ConcatAlongKernel<E> for Cpu<Al> {
+impl<E: Dtype, Al: Allocator + Clone> super::ConcatAlongKernel<E> for Cpu<Al> {
     fn forward<A: Shape, B: Shape, C: Shape>(
         &self,
         ax: usize,

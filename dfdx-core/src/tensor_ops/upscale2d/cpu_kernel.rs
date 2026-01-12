@@ -16,7 +16,7 @@ fn make_4d<S: Shape>(strides: S::Concrete) -> [usize; 4] {
     }
 }
 
-impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign, A: Allocator + Clone + 'static>
+impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign, A: Allocator + Clone>
     super::Upscale2DKernel<E, NearestNeighbor> for Cpu<A>
 {
     fn forward<I: Shape, O: Shape>(
@@ -82,7 +82,7 @@ impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign, A: Allocator +
     }
 }
 
-impl<E: Float + Dtype, A: Allocator + Clone + 'static> super::Upscale2DKernel<E, Bilinear> for Cpu<A> {
+impl<E: Float + Dtype, A: Allocator + Clone> super::Upscale2DKernel<E, Bilinear> for Cpu<A> {
     fn forward<I: Shape, O: Shape>(
         &self,
         op: super::Upscale2DOp,

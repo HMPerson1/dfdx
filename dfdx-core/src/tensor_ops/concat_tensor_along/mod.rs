@@ -80,11 +80,11 @@ pub trait ConcatAlongKernel<E: Dtype>: Storage<E> {
     ) -> Result<(), Error>;
 }
 
-impl<A, B, Ax, E: Dtype, D, T: Tape<E, D>, R: Tape<E, D>> TryConcatTensorAlong<Ax>
+impl<'a, A, B, Ax, E: Dtype, D, T: Tape<'a, E, D>, R: Tape<'a, E, D>> TryConcatTensorAlong<Ax>
     for (Tensor<A, E, D, T>, Tensor<B, E, D, R>)
 where
     Ax: Axes<Array = [isize; 1]>,
-    D: ConcatAlongKernel<E> + ZerosTensor<E>,
+    D: ConcatAlongKernel<E> + ZerosTensor<E> + 'a,
     A: Shape + HasAxes<Ax>,
     B: Shape<Concrete = A::Concrete> + HasAxes<Ax>,
     (A, B): TryConcatShapeAlong<Ax>,

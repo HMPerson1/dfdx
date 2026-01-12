@@ -18,7 +18,7 @@ pub trait CmpKernel<Op, E>: Storage<E> + Storage<bool> {
     ) -> Result<Tensor<S, bool, Self>, Error>;
 }
 
-fn try_cmp_op<Op, S: Shape, E, D: CmpKernel<Op, E>, T: Tape<E, D>>(
+fn try_cmp_op<'a, Op, S: Shape, E, D: CmpKernel<Op, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Result<Tensor<S, bool, D, NoneTape>, crate::tensor::Error> {
@@ -34,7 +34,7 @@ pub trait ScalarCmpKernel<Op, E>: Storage<E> + Storage<bool> {
     ) -> Result<Tensor<S, bool, Self>, Error>;
 }
 
-fn try_scalar_cmp_op<Op, S: Shape, E, D: ScalarCmpKernel<Op, E>, T: Tape<E, D>>(
+fn try_scalar_cmp_op<'a, Op, S: Shape, E, D: ScalarCmpKernel<Op, E>, T: Tape<'a, E, D>>(
     tensor: &Tensor<S, E, D, T>,
     scalar: E,
 ) -> Result<Tensor<S, bool, D, NoneTape>, crate::tensor::Error> {
@@ -66,7 +66,7 @@ pub enum LeKernelOp {}
 /// let r = a.eq(1);
 /// assert_eq!(r.array(), [false, false, false, true, false]);
 /// ```
-pub fn eq<S: Shape, E, D: CmpKernel<EqKernelOp, E>, T: Tape<E, D>>(
+pub fn eq<'a, S: Shape, E, D: CmpKernel<EqKernelOp, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Tensor<S, bool, D, NoneTape> {
@@ -91,7 +91,7 @@ pub fn eq<S: Shape, E, D: CmpKernel<EqKernelOp, E>, T: Tape<E, D>>(
 /// let r = a.ne(1);
 /// assert_eq!(r.array(), [true, true, true, false, true]);
 /// ```
-pub fn ne<S: Shape, E, D: CmpKernel<NeKernelOp, E>, T: Tape<E, D>>(
+pub fn ne<'a, S: Shape, E, D: CmpKernel<NeKernelOp, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Tensor<S, bool, D, NoneTape> {
@@ -116,7 +116,7 @@ pub fn ne<S: Shape, E, D: CmpKernel<NeKernelOp, E>, T: Tape<E, D>>(
 /// let r = a.gt(-1);
 /// assert_eq!(r.array(), [false, false, true, true, true]);
 /// ```
-pub fn gt<S: Shape, E, D: CmpKernel<GtKernelOp, E>, T: Tape<E, D>>(
+pub fn gt<'a, S: Shape, E, D: CmpKernel<GtKernelOp, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Tensor<S, bool, D, NoneTape> {
@@ -141,7 +141,7 @@ pub fn gt<S: Shape, E, D: CmpKernel<GtKernelOp, E>, T: Tape<E, D>>(
 /// let r = a.ge(-1);
 /// assert_eq!(r.array(), [false, true, true, true, true]);
 /// ```
-pub fn ge<S: Shape, E, D: CmpKernel<GeKernelOp, E>, T: Tape<E, D>>(
+pub fn ge<'a, S: Shape, E, D: CmpKernel<GeKernelOp, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Tensor<S, bool, D, NoneTape> {
@@ -166,7 +166,7 @@ pub fn ge<S: Shape, E, D: CmpKernel<GeKernelOp, E>, T: Tape<E, D>>(
 /// let r = a.lt(1);
 /// assert_eq!(r.array(), [true, true, true, false, false]);
 /// ```
-pub fn lt<S: Shape, E, D: CmpKernel<LtKernelOp, E>, T: Tape<E, D>>(
+pub fn lt<'a, S: Shape, E, D: CmpKernel<LtKernelOp, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Tensor<S, bool, D, NoneTape> {
@@ -191,7 +191,7 @@ pub fn lt<S: Shape, E, D: CmpKernel<LtKernelOp, E>, T: Tape<E, D>>(
 /// let r = a.le(1);
 /// assert_eq!(r.array(), [true, true, true, true, false]);
 /// ```
-pub fn le<S: Shape, E, D: CmpKernel<LeKernelOp, E>, T: Tape<E, D>>(
+pub fn le<'a, S: Shape, E, D: CmpKernel<LeKernelOp, E>, T: Tape<'a, E, D>>(
     lhs: &Tensor<S, E, D, T>,
     rhs: &Tensor<S, E, D, T>,
 ) -> Tensor<S, bool, D, NoneTape> {
@@ -211,7 +211,7 @@ macro_rules! impl_cmp_kernel_op {
             fn $TryFnName(&self, rhs: Rhs) -> Result<Self::Output, Error>;
         }
 
-        impl<S: Shape, E, D: CmpKernel<$KernelOp, E>, T: Tape<E, D>> $TraitName<&Self>
+        impl<'a, S: Shape, E, D: CmpKernel<$KernelOp, E>, T: Tape<'a, E, D>> $TraitName<&Self>
             for Tensor<S, E, D, T>
         {
             type Output = Tensor<S, bool, D, NoneTape>;
@@ -221,7 +221,7 @@ macro_rules! impl_cmp_kernel_op {
             }
         }
 
-        impl<S: Shape, E, D: ScalarCmpKernel<$KernelOp, E>, T: Tape<E, D>> $TraitName<E>
+        impl<'a, S: Shape, E, D: ScalarCmpKernel<$KernelOp, E>, T: Tape<'a, E, D>> $TraitName<E>
             for Tensor<S, E, D, T>
         {
             type Output = Tensor<S, bool, D, NoneTape>;
@@ -256,7 +256,7 @@ macro_rules! impl_cmp_kernel_op {
             }
         }
 
-        impl<S: Shape, E, D: ScalarCmpKernel<$KernelOp, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+        impl<'a, S: Shape, E, D: ScalarCmpKernel<$KernelOp, E>, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
             #[doc = $doc]
             #[deprecated = "You can now use the non-scalar method for both tensors & scalars."]
             pub fn $ScalarFnName(&self, other: E) -> Tensor<S, bool, D, NoneTape> {

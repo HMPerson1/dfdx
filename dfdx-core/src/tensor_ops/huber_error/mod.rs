@@ -31,7 +31,7 @@ pub struct HuberErrorKernelOp<E> {
 /// let r = a.huber_error(b, 1.0);
 /// assert_eq!(r.array(), [0.125, 0.28125, 1.0]);
 /// ```
-pub fn huber_error<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D> + Merge<R>, R: Tape<E, D>>(
+pub fn huber_error<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D> + Merge<R>, R: Tape<'a, E, D>>(
     lhs: Tensor<S, E, D, T>,
     rhs: Tensor<S, E, D, R>,
     delta: impl Into<f64>,
@@ -39,9 +39,9 @@ pub fn huber_error<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D> + Merge<R>, R
     lhs.huber_error(rhs, delta)
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [huber_error]
-    pub fn huber_error<R: Tape<E, D>>(self, rhs: Tensor<S, E, D, R>, delta: impl Into<f64>) -> Self
+    pub fn huber_error<R: Tape<'a, E, D>>(self, rhs: Tensor<S, E, D, R>, delta: impl Into<f64>) -> Self
     where
         T: Merge<R>,
     {
@@ -49,7 +49,7 @@ impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> Tensor<S, E, D, T> {
     }
 
     /// See [huber_error]
-    pub fn try_huber_error<R: Tape<E, D>>(
+    pub fn try_huber_error<R: Tape<'a, E, D>>(
         self,
         rhs: Tensor<S, E, D, R>,
         delta: impl Into<f64>,

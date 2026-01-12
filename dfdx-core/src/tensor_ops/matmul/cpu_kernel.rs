@@ -229,7 +229,7 @@ impl<A: Allocator> MatMulImpl<f64> for Cpu<A> {
     }
 }
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatKernel<E> for Cpu<A>
+impl<E: Dtype, A: Allocator + Clone> super::MatMatKernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
@@ -288,7 +288,7 @@ where
     }
 }
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatBrKernel<E> for Cpu<A>
+impl<E: Dtype, A: Allocator + Clone> super::MatMatBrKernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
@@ -352,7 +352,7 @@ where
     }
 }
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatBatch3Kernel<E> for Cpu<A>
+impl<E: Dtype, A: Allocator + Clone> super::MatMatBatch3Kernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {
@@ -418,7 +418,7 @@ where
     }
 }
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::MatMatBatch4Kernel<E> for Cpu<A>
+impl<E: Dtype, A: Allocator + Clone> super::MatMatBatch4Kernel<E> for Cpu<A>
 where
     Self: MatMulImpl<E>,
 {

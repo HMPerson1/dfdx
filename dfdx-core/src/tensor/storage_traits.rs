@@ -14,7 +14,7 @@ pub trait RandomU64 {
 }
 
 /// Something that can store nd arrays for a given [Shape] and [Dtype]
-pub trait Storage<E>: 'static + Clone {
+pub trait Storage<E>: Clone {
     /// Generic Storage type
     type Vec: Clone;
 

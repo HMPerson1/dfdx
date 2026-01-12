@@ -47,14 +47,14 @@ pub trait SliceKernel<E: Unit>: Storage<E> {
 /// let c: Tensor<Rank2<2, 1>, _, _> = a.clone().slice((0..2, 1..)).realize();
 /// assert_eq!(c.array(), [[2.], [4.]]);
 /// ```
-pub fn slice<S: SliceShape<Slice>, E: Unit, D: SliceKernel<E>, T: Tape<E, D>, Slice: 'static>(
+pub fn slice<'a, S: SliceShape<Slice>, E: Unit, D: SliceKernel<E> + 'a, T: Tape<'a, E, D>, Slice: 'static>(
     tensor: Tensor<S, E, D, T>,
     slice: Slice,
 ) -> Tensor<S::Sliced, E, D, T> {
     tensor.slice(slice)
 }
 
-impl<S: Shape, E: Unit, D: SliceKernel<E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Unit, D: SliceKernel<E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// Fallible version of [Tensor::slice]
     pub fn try_slice<Slice>(
         self,

@@ -3,7 +3,7 @@ use std::{alloc::Allocator, sync::Arc, vec::Vec};
 
 use crate::prelude::{Cpu, Error, Shape, Tensor, Unit};
 
-impl<E1: Unit + AsPrimitive<E2>, E2: Unit, A: Allocator + Clone + 'static> super::ToDtypeKernel<E1, E2> for Cpu<A> {
+impl<E1: Unit + AsPrimitive<E2>, E2: Unit, A: Allocator + Clone> super::ToDtypeKernel<E1, E2> for Cpu<A> {
     fn forward<S: Shape>(inp: Tensor<S, E1, Self>) -> Result<Tensor<S, E2, Self>, Error> {
         let mut data = Vec::new_in(inp.device.alloc.clone());
         data.extend(inp.data.iter().map(|x| (*x).as_()));

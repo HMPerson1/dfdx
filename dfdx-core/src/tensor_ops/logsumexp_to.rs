@@ -36,7 +36,7 @@ pub trait LogSumExpTo: Sized + HasShape {
         Self::Shape: ReduceShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> LogSumExpTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>> LogSumExpTo for Tensor<S, E, D, T> {
     fn try_logsumexp<Dst: Shape, Ax: Axes>(self) -> Result<Self::WithShape<Dst>, Error>
     where
         Self::Shape: ReduceShapeTo<Dst, Ax>,

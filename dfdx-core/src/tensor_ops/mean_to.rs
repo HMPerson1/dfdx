@@ -34,7 +34,7 @@ pub trait MeanTo: Sized + HasShape {
         Self::Shape: HasAxes<Ax> + ReduceShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> MeanTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>> MeanTo for Tensor<S, E, D, T> {
     fn try_mean<Dst: Shape, Ax: Axes>(self) -> Result<Self::WithShape<Dst>, Error>
     where
         Self::Shape: HasAxes<Ax> + ReduceShapeTo<Dst, Ax>,

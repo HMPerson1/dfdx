@@ -30,7 +30,7 @@ pub trait StddevTo<E: Dtype>: Sized + HasShape {
         Self::Shape: HasAxes<Ax> + ReduceShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> StddevTo<E> for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>> StddevTo<E> for Tensor<S, E, D, T> {
     fn try_stddev<Dst: Shape, Ax: Axes>(
         self,
         epsilon: impl Into<f64>,

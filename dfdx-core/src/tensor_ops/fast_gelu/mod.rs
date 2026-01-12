@@ -31,7 +31,7 @@ pub struct FastGeLUKernelOp;
 /// let t = dev.tensor([-1.0, 0.0, 1.0, 2.0]);
 /// let r = t.gelu();
 /// ```
-pub fn fast_gelu<S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E>, T: Tape<E, D>>(
+pub fn fast_gelu<'a, S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
 ) -> Tensor<S, E, D, T> {
     t.fast_gelu()
@@ -39,13 +39,13 @@ pub fn fast_gelu<S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E>, T: Tap
 
 /// Use [fast_gelu] instead
 #[deprecated(since = "0.12.0", note = "Use `fast_gelu` instead")]
-pub fn gelu<S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E>, T: Tape<E, D>>(
+pub fn gelu<'a, S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
 ) -> Tensor<S, E, D, T> {
     fast_gelu(t)
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<FastGeLUKernelOp, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [fast_gelu]
     pub fn fast_gelu(self) -> Self {
         self.try_fast_gelu().unwrap()

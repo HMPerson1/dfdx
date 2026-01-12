@@ -5,7 +5,7 @@ use crate::{
 
 use std::{alloc::Allocator, sync::Arc};
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::RollKernel<E> for Cpu<A> {
+impl<E: Dtype, A: Allocator + Clone> super::RollKernel<E> for Cpu<A> {
     fn forward<S: Shape>(
         &self,
         op: super::RollOp,

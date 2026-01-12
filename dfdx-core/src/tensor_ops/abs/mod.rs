@@ -25,13 +25,13 @@ pub struct AbsKernelOp;
 /// let r = t.abs();
 /// assert_eq!(r.array(), [1.0, 0.0, 1.0, 2.0]);
 /// ```
-pub fn abs<S: Shape, E: Dtype, D: UnaryKernel<AbsKernelOp, E>, T: Tape<E, D>>(
+pub fn abs<'a, S: Shape, E: Dtype, D: UnaryKernel<AbsKernelOp, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
 ) -> Tensor<S, E, D, T> {
     t.abs()
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<AbsKernelOp, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<AbsKernelOp, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [abs]
     pub fn abs(self) -> Self {
         self.try_abs().unwrap()

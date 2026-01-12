@@ -44,10 +44,10 @@ pub trait TryStack: Sized {
     fn try_stack(self) -> Result<Self::Stacked, Error>;
 }
 
-impl<S: Shape, E: Dtype, D: StackKernel<E>, T, const N: usize> TryStack for [Tensor<S, E, D, T>; N]
+impl<'a, S: Shape, E: Dtype, D: StackKernel<E> + 'a, T, const N: usize> TryStack for [Tensor<S, E, D, T>; N]
 where
     S: AddDim<Const<N>>,
-    T: Tape<E, D>,
+    T: Tape<'a, E, D>,
 {
     type Stacked = Tensor<S::Larger, E, D, T>;
     fn try_stack(self) -> Result<Self::Stacked, Error> {
@@ -55,10 +55,10 @@ where
     }
 }
 
-impl<S: Shape, E: Dtype, D: StackKernel<E>, T> TryStack for std::vec::Vec<Tensor<S, E, D, T>>
+impl<'a, S: Shape, E: Dtype, D: StackKernel<E> + 'a, T> TryStack for std::vec::Vec<Tensor<S, E, D, T>>
 where
     S: AddDim<usize>,
-    T: Tape<E, D>,
+    T: Tape<'a, E, D>,
 {
     type Stacked = Tensor<S::Larger, E, D, T>;
     fn try_stack(self) -> Result<Self::Stacked, Error> {
@@ -120,13 +120,13 @@ pub trait StackKernel<E: Dtype>: Storage<E> {
     fn backward(&self, grad_inp: Vec<&mut Self::Vec>, grad_out: &Self::Vec) -> Result<(), Error>;
 }
 
-fn try_stack<S: Shape, E: Dtype, D: StackKernel<E>, T, Items>(
+fn try_stack<'a, S: Shape, E: Dtype, D: StackKernel<E> + 'a, T, Items>(
     items: Items,
 ) -> Result<Tensor<S::Larger, E, D, T>, crate::tensor::Error>
 where
     Items: Array<Tensor<S, E, D, T>>,
     S: AddDim<Items::Dim>,
-    T: Tape<E, D> + Merge<T>,
+    T: Tape<'a, E, D> + Merge<T>,
 {
     let new_dim = items.dim();
     assert!(new_dim.size() > 0);

@@ -117,8 +117,8 @@ pub trait Device<E: Dtype>:
 impl Device<f16> for crate::tensor::Cpu {}
 #[cfg(feature = "f16")]
 impl Device<AMP<f16>> for crate::tensor::Cpu {}
-impl<A: Allocator + Clone + 'static> Device<f32> for crate::tensor::Cpu<A> {}
-impl<A: Allocator + Clone + 'static> Device<f64> for crate::tensor::Cpu<A> {}
+impl<A: Allocator + Clone> Device<f32> for crate::tensor::Cpu<A> {}
+impl<A: Allocator + Clone> Device<f64> for crate::tensor::Cpu<A> {}
 
 #[cfg(all(feature = "cuda", feature = "f16"))]
 impl Device<f16> for crate::tensor::Cuda {}

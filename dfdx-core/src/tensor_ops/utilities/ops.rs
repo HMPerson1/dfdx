@@ -42,11 +42,12 @@ pub trait BinaryKernel<Op, E: Dtype>: Storage<E> {
 }
 
 pub(crate) fn try_unary_op<
-    Op: 'static + Clone,
+    'a,
+    Op: 'a + Clone,
     S: Shape,
     E: Dtype,
-    D: UnaryKernel<Op, E>,
-    T: Tape<E, D>,
+    D: UnaryKernel<Op, E> + 'a,
+    T: Tape<'a, E, D>,
 >(
     op: Op,
     inp: Tensor<S, E, D, T>,
@@ -89,12 +90,13 @@ pub(crate) fn try_unary_op<
 }
 
 pub(crate) fn try_binary_op<
-    Op: 'static + Copy,
+    'a,
+    Op: 'a + Copy,
     S: Shape,
     E: Dtype,
-    D: BinaryKernel<Op, E>,
+    D: BinaryKernel<Op, E> + 'a,
     RhsTape,
-    LhsTape: Tape<E, D> + Merge<RhsTape>,
+    LhsTape: Tape<'a, E, D> + Merge<RhsTape>,
 >(
     op: Op,
     lhs: Tensor<S, E, D, LhsTape>,
@@ -209,11 +211,12 @@ pub trait BinaryKernel2<Op, E: Dtype>: Storage<E> {
 }
 
 pub fn try_unary_op2<
-    Op: 'static + Clone,
+    'a,
+    Op: 'a + Clone,
     S: Shape,
     E: Dtype,
-    D: UnaryKernel2<Op, E>,
-    T: Tape<E, D>,
+    D: UnaryKernel2<Op, E> + 'a,
+    T: Tape<'a, E, D>,
 >(
     op: Op,
     inp: Tensor<S, E, D, T>,
@@ -238,12 +241,13 @@ pub fn try_unary_op2<
 }
 
 pub fn try_binary_op2<
-    Op: 'static + Clone,
+    'a,
+    Op: 'a + Clone,
     S: Shape,
     E: Dtype,
-    D: BinaryKernel2<Op, E>,
+    D: BinaryKernel2<Op, E> + 'a,
     RhsTape,
-    LhsTape: Tape<E, D> + Merge<RhsTape>,
+    LhsTape: Tape<'a, E, D> + Merge<RhsTape>,
 >(
     op: Op,
     lhs: Tensor<S, E, D, LhsTape>,

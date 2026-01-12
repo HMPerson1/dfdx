@@ -14,7 +14,7 @@ pub trait Backward<E, D: Storage<E>>: Sized {
 }
 
 impl<E: 'static + Clone, D: OneFillStorage<E>> Backward<E, D>
-    for Tensor<Rank0, E, D, OwnedTape<E, D>>
+    for Tensor<Rank0, E, D, OwnedTape<'_, E, D>>
 {
     fn try_backward(self) -> Result<Gradients<E, D>, Error> {
         let (t, mut tape) = self.split_tape();

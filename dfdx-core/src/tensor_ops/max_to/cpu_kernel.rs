@@ -8,7 +8,7 @@ use crate::{
 
 use num_traits::Float;
 
-impl<E: Dtype + Float, A: Allocator + Clone + 'static> super::MaxReduceKernel<E> for Cpu<A> {
+impl<E: Dtype + Float, A: Allocator + Clone> super::MaxReduceKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Ax: Axes>(
         &self,
         dst: Dst,

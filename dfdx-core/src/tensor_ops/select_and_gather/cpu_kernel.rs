@@ -8,7 +8,7 @@ use crate::tensor::{
     Cpu, Error, Storage, Tensor, ZerosTensor,
 };
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::ReplaceDimKernel<E> for Cpu<A> {
+impl<E: Dtype, A: Allocator + Clone> super::ReplaceDimKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Idx: Shape>(
         &self,
         inp: &Tensor<Src, E, Self>,
@@ -84,7 +84,7 @@ impl<E: Dtype, A: Allocator + Clone + 'static> super::ReplaceDimKernel<E> for Cp
     }
 }
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::RemoveDimKernel<E> for Cpu<A> {
+impl<E: Dtype, A: Allocator + Clone> super::RemoveDimKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape, Idx: Shape>(
         &self,
         inp: &Tensor<Src, E, Self>,

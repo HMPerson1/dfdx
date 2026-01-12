@@ -65,7 +65,7 @@ pub trait Roll: Sized + HasShape {
         Self::Shape: HasAxes<Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: RollKernel<E>, T: Tape<E, D>> Roll for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: RollKernel<E> + 'a, T: Tape<'a, E, D>> Roll for Tensor<S, E, D, T> {
     fn try_roll<Ax: Axes<Array = [isize; 1]>>(
         self,
         amount: usize,

@@ -80,16 +80,16 @@ pub trait TryMatMul<Rhs>: Sized {
 }
 
 #[rustfmt::skip]
-fn try_binary_op<
+fn try_binary_op<'a, 
     Lhs: Shape,
     Rhs: Shape,
     Out: Shape,
     E: Dtype,
-    D: Storage<E>,
-    RhsTape: Tape<E, D>,
-    LhsTape: Tape<E, D> + Merge<RhsTape>,
-    Fwd: 'static + FnMut(&D, &Tensor<Lhs, E, D>, &Tensor<Rhs, E, D>) -> Result<Tensor<Out, E,D>, crate::tensor::Error>,
-    Bwd: 'static + FnMut(&D, &Tensor<Lhs, E, D>, &mut D::Vec, &Tensor<Rhs, E,D>, &mut D::Vec, &D::Vec) -> Result<(), crate::tensor::Error>,
+    D: Storage<E> + 'a,
+    RhsTape: Tape<'a, E, D>,
+    LhsTape: Tape<'a, E, D> + Merge<RhsTape>,
+    Fwd: 'a + FnMut(&D, &Tensor<Lhs, E, D>, &Tensor<Rhs, E, D>) -> Result<Tensor<Out, E,D>, crate::tensor::Error>,
+    Bwd: 'a + FnMut(&D, &Tensor<Lhs, E, D>, &mut D::Vec, &Tensor<Rhs, E,D>, &mut D::Vec, &D::Vec) -> Result<(), crate::tensor::Error>,
 >(
     lhs: Tensor<Lhs, E, D, LhsTape>,
     rhs: Tensor<Rhs, E, D, RhsTape>,
@@ -130,10 +130,10 @@ pub trait MatMatKernel<E: Dtype>: Storage<E> {
     ) -> Result<(), Error>;
 }
 
-impl<M: Dim, N: Dim, E: Dtype, D, T: Tape<E, D> + Merge<R>, R: Tape<E, D>>
+impl<'a, M: Dim, N: Dim, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Tape<'a, E, D>>
     TryMatMul<Tensor<(N,), E, D, R>> for Tensor<(M,), E, D, T>
 where
-    D: MatMatKernel<E> + ReshapeKernel<E>,
+    D: MatMatKernel<E> + ReshapeKernel<E> + 'a,
 {
     type Output = Tensor<(M, N), E, D, T>;
     fn try_matmul(self, rhs: Tensor<(N,), E, D, R>) -> Result<Self::Output, Error> {
@@ -144,10 +144,10 @@ where
     }
 }
 
-impl<K: Dim, N: Dim, E: Dtype, D, T: Tape<E, D> + Merge<R>, R: Tape<E, D>>
+impl<'a, K: Dim, N: Dim, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Tape<'a, E, D>>
     TryMatMul<Tensor<(K, N), E, D, R>> for Tensor<(K,), E, D, T>
 where
-    D: MatMatKernel<E> + ReshapeKernel<E>,
+    D: MatMatKernel<E> + ReshapeKernel<E> + 'a,
 {
     type Output = Tensor<(N,), E, D, T>;
     fn try_matmul(self, rhs: Tensor<(K, N), E, D, R>) -> Result<Self::Output, Error> {
@@ -159,10 +159,10 @@ where
     }
 }
 
-impl<M: Dim, K: Dim, E: Dtype, D, T: Tape<E, D> + Merge<R>, R: Tape<E, D>>
+impl<'a, M: Dim, K: Dim, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Tape<'a, E, D>>
     TryMatMul<Tensor<(K,), E, D, R>> for Tensor<(M, K), E, D, T>
 where
-    D: MatMatKernel<E> + ReshapeKernel<E>,
+    D: MatMatKernel<E> + ReshapeKernel<E> + 'a,
 {
     type Output = Tensor<(M,), E, D, T>;
     fn try_matmul(self, rhs: Tensor<(K,), E, D, R>) -> Result<Self::Output, Error> {
@@ -174,11 +174,11 @@ where
     }
 }
 
-impl<M: Dim, K: Dim, N: Dim, E: Dtype, D: MatMatKernel<E>, T, R> TryMatMul<Tensor<(K, N), E, D, R>>
+impl<'a, M: Dim, K: Dim, N: Dim, E: Dtype, D: MatMatKernel<E> + 'a, T, R> TryMatMul<Tensor<(K, N), E, D, R>>
     for Tensor<(M, K), E, D, T>
 where
-    T: Tape<E, D> + Merge<R>,
-    R: Tape<E, D>,
+    T: Tape<'a, E, D> + Merge<R>,
+    R: Tape<'a, E, D>,
 {
     type Output = Tensor<(M, N), E, D, T>;
     /// ```compile_fail
@@ -211,11 +211,11 @@ pub trait MatMatBrKernel<E: Dtype>: Storage<E> {
     ) -> Result<(), Error>;
 }
 
-impl<B: Dim, M: Dim, K: Dim, N: Dim, E: Dtype, D: MatMatBrKernel<E>, T, R>
+impl<'a, B: Dim, M: Dim, K: Dim, N: Dim, E: Dtype, D: MatMatBrKernel<E> + 'a, T, R>
     TryMatMul<Tensor<(K, N), E, D, R>> for Tensor<(B, M, K), E, D, T>
 where
-    T: Tape<E, D> + Merge<R>,
-    R: Tape<E, D>,
+    T: Tape<'a, E, D> + Merge<R>,
+    R: Tape<'a, E, D>,
 {
     type Output = Tensor<(B, M, N), E, D, T>;
     /// ```compile_fail
@@ -248,12 +248,12 @@ pub trait MatMatBatch3Kernel<E: Dtype>: Storage<E> {
     ) -> Result<(), Error>;
 }
 
-impl<B: Dim, M: Dim, K: Dim, N: Dim, E: Dtype, D, T, R> TryMatMul<Tensor<(B, K, N), E, D, R>>
+impl<'a, B: Dim, M: Dim, K: Dim, N: Dim, E: Dtype, D, T, R> TryMatMul<Tensor<(B, K, N), E, D, R>>
     for Tensor<(B, M, K), E, D, T>
 where
-    D: MatMatBatch3Kernel<E>,
-    T: Tape<E, D> + Merge<R>,
-    R: Tape<E, D>,
+    D: MatMatBatch3Kernel<E> + 'a,
+    T: Tape<'a, E, D> + Merge<R>,
+    R: Tape<'a, E, D>,
 {
     type Output = Tensor<(B, M, N), E, D, T>;
     /// ```compile_fail
@@ -287,12 +287,12 @@ pub trait MatMatBatch4Kernel<E: Dtype>: Storage<E> {
     ) -> Result<(), Error>;
 }
 
-impl<B: Dim, S: Dim, M: Dim, K: Dim, N: Dim, E: Dtype, D, T, R>
+impl<'a, B: Dim, S: Dim, M: Dim, K: Dim, N: Dim, E: Dtype, D, T, R>
     TryMatMul<Tensor<(B, S, K, N), E, D, R>> for Tensor<(B, S, M, K), E, D, T>
 where
-    D: MatMatBatch4Kernel<E>,
-    T: Tape<E, D> + Merge<R>,
-    R: Tape<E, D>,
+    D: MatMatBatch4Kernel<E> + 'a,
+    T: Tape<'a, E, D> + Merge<R>,
+    R: Tape<'a, E, D>,
 {
     type Output = Tensor<(B, S, M, N), E, D, T>;
     /// ```compile_fail

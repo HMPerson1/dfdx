@@ -26,7 +26,7 @@ pub struct ClampKernelOp<E> {
 /// let r = t.clamp(-0.5, 0.5);
 /// assert_eq!(r.array(), [-0.5, -0.5, 0.0, 0.5, 0.5]);
 /// ```
-pub fn clamp<S: Shape, E: Dtype, D: UnaryKernel<ClampKernelOp<E>, E>, T: Tape<E, D>>(
+pub fn clamp<'a, S: Shape, E: Dtype, D: UnaryKernel<ClampKernelOp<E>, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
     min: impl Into<f64>,
     max: impl Into<f64>,
@@ -34,7 +34,7 @@ pub fn clamp<S: Shape, E: Dtype, D: UnaryKernel<ClampKernelOp<E>, E>, T: Tape<E,
     t.clamp(min, max)
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<ClampKernelOp<E>, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<ClampKernelOp<E>, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [clamp]
     pub fn clamp(self, min: impl Into<f64>, max: impl Into<f64>) -> Self {
         self.try_clamp(min, max).unwrap()

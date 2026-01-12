@@ -48,12 +48,12 @@ pub trait TryConcat<Rhs>: Sized {
 }
 
 #[allow(deprecated)]
-impl<A: Shape, B: Shape, T, R, E: Dtype, D: ConcatKernel<E>> TryConcat<Tensor<B, E, D, R>>
+impl<'a, A: Shape, B: Shape, T, R, E: Dtype, D: ConcatKernel<E> + 'a> TryConcat<Tensor<B, E, D, R>>
     for Tensor<A, E, D, T>
 where
     A: ConcatShape<B>,
-    T: Tape<E, D> + Merge<R>,
-    R: Tape<E, D>,
+    T: Tape<'a, E, D> + Merge<R>,
+    R: Tape<'a, E, D>,
 {
     type Output = Tensor<A::Catted, E, D, T>;
     #[allow(deprecated)]

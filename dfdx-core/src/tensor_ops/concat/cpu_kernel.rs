@@ -5,7 +5,7 @@ use crate::{
     tensor::{unique_id, Cpu, Error, Tensor},
 };
 
-impl<E: Dtype, Al: Allocator + Clone + 'static> super::ConcatKernel<E> for Cpu<Al> {
+impl<E: Dtype, Al: Allocator + Clone> super::ConcatKernel<E> for Cpu<Al> {
     fn forward<A: Shape, B: Shape>(
         &self,
         a: &Tensor<A, E, Self>,

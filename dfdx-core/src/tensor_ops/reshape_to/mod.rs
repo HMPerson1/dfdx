@@ -86,7 +86,7 @@ pub trait ReshapeTo: Sized + HasShape {
     fn try_reshape_like<Dst: Shape>(self, dst: &Dst) -> Result<Self::WithShape<Dst>, Error>;
 }
 
-impl<S: Shape, E: Dtype, D: ReshapeKernel<E>, T: Tape<E, D>> ReshapeTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: ReshapeKernel<E> + 'a, T: Tape<'a, E, D>> ReshapeTo for Tensor<S, E, D, T> {
     fn try_reshape_like<Dst: Shape>(self, dst: &Dst) -> Result<Self::WithShape<Dst>, Error> {
         assert_eq!(self.shape().num_elements(), dst.num_elements());
         if self.shape.strides() == self.strides {

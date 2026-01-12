@@ -24,13 +24,13 @@ pub struct ExpKernelOp;
 /// let t = dev.tensor([-1.0, 0.0, 1.0, 2.0]);
 /// let r = t.exp();
 /// ```
-pub fn exp<S: Shape, E: Dtype, D: UnaryKernel<ExpKernelOp, E>, T: Tape<E, D>>(
+pub fn exp<'a, S: Shape, E: Dtype, D: UnaryKernel<ExpKernelOp, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
 ) -> Tensor<S, E, D, T> {
     t.exp()
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<ExpKernelOp, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<ExpKernelOp, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [exp]
     pub fn exp(self) -> Self {
         self.try_exp().unwrap()

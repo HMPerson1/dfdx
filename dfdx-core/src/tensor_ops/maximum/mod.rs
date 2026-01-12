@@ -25,14 +25,14 @@ pub struct MaximumKernelOp;
 /// let b = dev.tensor([[1.0, 0.5, 1.0], [-2.0, 2.0, -3.5]]);
 /// let r = a.maximum(b);
 /// assert_eq!(r.array(), [[1.0, 2.0, 3.0], [-1.0, 2.0, -3.0]]);
-pub fn maximum<S: Shape, E: Dtype, D: Device<E>, LTape: Tape<E, D> + Merge<R>, R: Default>(
+pub fn maximum<'a, S: Shape, E: Dtype, D: Device<E> + 'a, LTape: Tape<'a, E, D> + Merge<R>, R: Default>(
     lhs: Tensor<S, E, D, LTape>,
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, LTape> {
     lhs.maximum(rhs)
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, LTape: Tape<E, D>> Tensor<S, E, D, LTape> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, LTape: Tape<'a, E, D>> Tensor<S, E, D, LTape> {
     /// See [maximum]
     pub fn maximum<R: Default>(self, rhs: Tensor<S, E, D, R>) -> Self
     where

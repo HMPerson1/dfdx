@@ -17,7 +17,7 @@ trait CmpOpCpuKernel<E: Unit> {
     fn func(lhs: E, rhs: E) -> bool;
 }
 
-impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone + 'static> CmpKernel<Op, E> for Cpu<A> {
+impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone> CmpKernel<Op, E> for Cpu<A> {
     fn forward<S: Shape, T>(
         &self,
         lhs: &Tensor<S, E, Self, T>,
@@ -34,7 +34,7 @@ impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone + 'static> CmpKernel<O
     }
 }
 
-impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone + 'static> ScalarCmpKernel<Op, E> for Cpu<A> {
+impl<Op: CmpOpCpuKernel<E>, E: Unit, A: Allocator + Clone> ScalarCmpKernel<Op, E> for Cpu<A> {
     fn forward<S: Shape, T>(
         &self,
         lhs: &Tensor<S, E, Self, T>,

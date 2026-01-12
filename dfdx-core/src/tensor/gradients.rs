@@ -174,14 +174,14 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 }
 
 /// Contains a [Gradients] and list of backward operations.
-pub struct OwnedTape<E, D: Storage<E>> {
+pub struct OwnedTape<'a, E, D: Storage<E>> {
     /// A list of (Time, BackwardOp) pairs. The Time is used to ensure operations
     /// from merged tapes are executed in the correct order.
-    pub(crate) operations: Vec<(UniqueId, BackwardOp<E, D>)>,
+    pub(crate) operations: Vec<(UniqueId, BackwardOp<'a, E, D>)>,
     pub(crate) gradients: Gradients<E, D>,
 }
 
-impl<E, D: Storage<E>> Default for OwnedTape<E, D> {
+impl<E, D: Storage<E>> Default for OwnedTape<'_, E, D> {
     fn default() -> Self {
         Self {
             operations: Default::default(),
@@ -190,7 +190,7 @@ impl<E, D: Storage<E>> Default for OwnedTape<E, D> {
     }
 }
 
-impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<E, D> where <D as Storage<E>>::Vec: std::fmt::Debug {
+impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<'_, E, D> where <D as Storage<E>>::Vec: std::fmt::Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OwnedTape")
             .field("num_operations", &self.operations.len())
@@ -199,7 +199,7 @@ impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for Ow
     }
 }
 
-impl<E, D: Storage<E>> From<Gradients<E, D>> for OwnedTape<E, D> {
+impl<E, D: Storage<E>> From<Gradients<E, D>> for OwnedTape<'_, E, D> {
     fn from(gradients: Gradients<E, D>) -> Self {
         Self {
             operations: Default::default(),
@@ -208,7 +208,7 @@ impl<E, D: Storage<E>> From<Gradients<E, D>> for OwnedTape<E, D> {
     }
 }
 
-impl<E, D: Storage<E>> OwnedTape<E, D> {
+impl<E, D: Storage<E>> OwnedTape<'_, E, D> {
     /// Compute the [Gradients]! This just runs all the operations on a new [Gradients] struct.
     ///
     /// Note that this method takes ownership of self, so it can't be called twice!
@@ -226,36 +226,36 @@ impl<E, D: Storage<E>> OwnedTape<E, D> {
     }
 }
 
-type BackwardOp<E, D> = Box<dyn FnOnce(&mut Gradients<E, D>) -> Result<(), Error>>;
+type BackwardOp<'a, E, D> = Box<dyn 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>>;
 
 /// Contains nothing. When [Tape::add_backward_op] is called, this struct does nothing.
 #[derive(Default, Debug, Clone, Copy)]
 pub struct NoneTape;
 
 /// Something that can track backward operations.
-pub trait Tape<E, D: Storage<E>>: Default + Merge<Self> + Merge<NoneTape> {
+pub trait Tape<'a, E, D: Storage<E>>: Default + Merge<Self> + Merge<NoneTape> {
     /// Whether this object is currently tracking gradients. This is known at compile time.
     const OWNS_TAPE: bool;
     fn add_backward_op<F>(&mut self, operation: F)
     where
-        F: 'static + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>;
+        F: 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>;
 }
 
-impl<E, D: Storage<E>> Tape<E, D> for OwnedTape<E, D> {
+impl<'a, E, D: Storage<E>> Tape<'a, E, D> for OwnedTape<'a, E, D> {
     const OWNS_TAPE: bool = true;
     fn add_backward_op<F>(&mut self, operation: F)
     where
-        F: 'static + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>,
+        F: 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>,
     {
         self.operations.push((unique_id(), Box::new(operation)));
     }
 }
 
-impl<E, D: Storage<E>> Tape<E, D> for NoneTape {
+impl<'a, E, D: Storage<E>> Tape<'a, E, D> for NoneTape {
     const OWNS_TAPE: bool = false;
     fn add_backward_op<F>(&mut self, _: F)
     where
-        F: 'static + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>,
+        F: 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>,
     {
     }
 }
@@ -272,13 +272,13 @@ impl Merge<NoneTape> for NoneTape {
     }
 }
 
-impl<E, D: Storage<E>> Merge<NoneTape> for OwnedTape<E, D> {
+impl<E, D: Storage<E>> Merge<NoneTape> for OwnedTape<'_, E, D> {
     fn merge(self, _: NoneTape) -> Self {
         self
     }
 }
 
-impl<E, D: Storage<E>> Merge<OwnedTape<E, D>> for OwnedTape<E, D> {
+impl<'a, E, D: Storage<E>> Merge<OwnedTape<'a, E, D>> for OwnedTape<'a, E, D> {
     fn merge(mut self, mut other: Self) -> Self {
         self.gradients
             .gradient_by_id

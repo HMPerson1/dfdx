@@ -38,12 +38,12 @@ pub struct ScalarMulKernelOp<E> {
 /// let r = a * 2.0;
 /// assert_eq!(r.array(), [[2.0, 4.0, 6.0], [-2.0, -4.0, -6.0]]);
 /// ```
-pub fn mul<S: Shape, E: Dtype, D, T: Tape<E, D> + Merge<R>, R: Default>(
+pub fn mul<'a, S: Shape, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Default>(
     lhs: Tensor<S, E, D, T>,
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T>
 where
-    D: BinaryKernel<BinaryMulKernelOp, E>,
+    D: BinaryKernel<BinaryMulKernelOp, E> + 'a,
 {
     lhs * rhs
 }
@@ -54,7 +54,7 @@ pub trait TryMul<Rhs = Self> {
     fn try_mul(self, rhs: Rhs) -> Result<Self::Output, Error>;
 }
 
-impl<S: Shape, E: Dtype, D: BinaryKernel<BinaryMulKernelOp, E>, LhsTape: Tape<E, D>, R>
+impl<'a, S: Shape, E: Dtype, D: BinaryKernel<BinaryMulKernelOp, E> + 'a, LhsTape: Tape<'a, E, D>, R>
     TryMul<Tensor<S, E, D, R>> for Tensor<S, E, D, LhsTape>
 where
     LhsTape: Merge<R>,
@@ -65,9 +65,9 @@ where
     }
 }
 
-impl<S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<E, D>> TryMul<Rhs> for Tensor<S, E, D, T>
+impl<'a, S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<'a, E, D>> TryMul<Rhs> for Tensor<S, E, D, T>
 where
-    D: UnaryKernel<ScalarMulKernelOp<E>, E>,
+    D: UnaryKernel<ScalarMulKernelOp<E>, E> + 'a,
 {
     type Output = Self;
     fn try_mul(self, rhs: Rhs) -> Result<Self, Error> {
@@ -77,7 +77,7 @@ where
     }
 }
 
-impl<S: Shape, E: Dtype, D: Storage<E>, LhsTape: Tape<E, D>, Rhs> std::ops::Mul<Rhs>
+impl<'a, S: Shape, E: Dtype, D: Storage<E>, LhsTape: Tape<'a, E, D>, Rhs> std::ops::Mul<Rhs>
     for Tensor<S, E, D, LhsTape>
 where
     Self: TryMul<Rhs>,

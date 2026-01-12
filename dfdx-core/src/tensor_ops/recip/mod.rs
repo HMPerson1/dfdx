@@ -22,13 +22,13 @@ pub struct RecipKernelOp;
 /// let t = dev.tensor([-1.0, 0.0, 1.0, 2.0]);
 /// let r = t.recip();
 /// ```
-pub fn recip<S: Shape, E: Dtype, D: UnaryKernel<RecipKernelOp, E>, T: Tape<E, D>>(
+pub fn recip<'a, S: Shape, E: Dtype, D: UnaryKernel<RecipKernelOp, E> + 'a, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
 ) -> Tensor<S, E, D, T> {
     t.recip()
 }
 
-impl<S: Shape, E: Dtype, D: UnaryKernel<RecipKernelOp, E>, T: Tape<E, D>> Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: UnaryKernel<RecipKernelOp, E> + 'a, T: Tape<'a, E, D>> Tensor<S, E, D, T> {
     /// See [recip]
     pub fn recip(self) -> Self {
         self.try_recip().unwrap()

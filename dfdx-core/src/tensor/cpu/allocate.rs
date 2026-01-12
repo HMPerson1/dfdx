@@ -27,7 +27,7 @@ impl<A: Allocator + Clone> Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> ZerosTensor<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> ZerosTensor<E> for Cpu<A> {
     fn try_zeros_like<S: HasShape>(&self, src: &S) -> Result<Tensor<S::Shape, E, Self>, Error> {
         let shape = *src.shape();
         let strides = shape.strides();
@@ -44,14 +44,14 @@ impl<E: Unit, A: Allocator + Clone + 'static> ZerosTensor<E> for Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> ZeroFillStorage<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> ZeroFillStorage<E> for Cpu<A> {
     fn try_fill_with_zeros(&self, storage: &mut Self::Vec) -> Result<(), Error> {
         storage.fill(Default::default());
         Ok(())
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> OnesTensor<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> OnesTensor<E> for Cpu<A> {
     fn try_ones_like<S: HasShape>(&self, src: &S) -> Result<Tensor<S::Shape, E, Self>, Error> {
         let shape = *src.shape();
         let strides = shape.strides();
@@ -68,7 +68,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> OnesTensor<E> for Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> TriangleTensor<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> TriangleTensor<E> for Cpu<A> {
     fn try_upper_tri_like<S: HasShape>(
         &self,
         src: &S,
@@ -114,7 +114,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> TriangleTensor<E> for Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> OneFillStorage<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> OneFillStorage<E> for Cpu<A> {
     fn try_fill_with_ones(&self, storage: &mut Self::Vec) -> Result<(), Error> {
         storage.fill(E::ONE);
         Ok(())
@@ -122,7 +122,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> OneFillStorage<E> for Cpu<A> {
 }
 
 #[cfg(test)]
-impl<E: Unit, A: Allocator + Clone + 'static> SampleTensor<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> SampleTensor<E> for Cpu<A> {
     fn try_sample_like<S: HasShape, D: Distribution<E>>(
         &self,
         src: &S,
@@ -152,7 +152,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> SampleTensor<E> for Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> CopySlice<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> CopySlice<E> for Cpu<A> {
     fn copy_from<S: Shape, T>(dst: &mut Tensor<S, E, Self, T>, src: &[E]) {
         std::sync::Arc::make_mut(&mut dst.data).copy_from_slice(src);
     }
@@ -161,7 +161,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> CopySlice<E> for Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> TensorFromVec<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> TensorFromVec<E> for Cpu<A> {
     fn try_tensor_from_vec<S: Shape>(
         &self,
         src: Vec<E>,
@@ -187,7 +187,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> TensorFromVec<E> for Cpu<A> {
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static> TensorToArray<Rank0, E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> TensorToArray<Rank0, E> for Cpu<A> {
     type Array = E;
     fn tensor_to_array<T>(&self, tensor: &Tensor<Rank0, E, Self, T>) -> Self::Array {
         let mut out: Self::Array = Default::default();
@@ -196,7 +196,7 @@ impl<E: Unit, A: Allocator + Clone + 'static> TensorToArray<Rank0, E> for Cpu<A>
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static, const M: usize> TensorToArray<Rank1<M>, E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone, const M: usize> TensorToArray<Rank1<M>, E> for Cpu<A> {
     type Array = [E; M];
     fn tensor_to_array<T>(&self, tensor: &Tensor<Rank1<M>, E, Self, T>) -> Self::Array {
         let mut out: Self::Array = [Default::default(); M];
@@ -208,7 +208,7 @@ impl<E: Unit, A: Allocator + Clone + 'static, const M: usize> TensorToArray<Rank
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static, const M: usize, const N: usize> TensorToArray<Rank2<M, N>, E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize> TensorToArray<Rank2<M, N>, E> for Cpu<A> {
     type Array = [[E; N]; M];
     fn tensor_to_array<T>(&self, tensor: &Tensor<Rank2<M, N>, E, Self, T>) -> Self::Array {
         let mut out: Self::Array = [[Default::default(); N]; M];
@@ -222,7 +222,7 @@ impl<E: Unit, A: Allocator + Clone + 'static, const M: usize, const N: usize> Te
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static, const M: usize, const N: usize, const O: usize> TensorToArray<Rank3<M, N, O>, E>
+impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize, const O: usize> TensorToArray<Rank3<M, N, O>, E>
     for Cpu<A>
 {
     type Array = [[[E; O]; N]; M];
@@ -236,7 +236,7 @@ impl<E: Unit, A: Allocator + Clone + 'static, const M: usize, const N: usize, co
     }
 }
 
-impl<E: Unit, A: Allocator + Clone + 'static, const M: usize, const N: usize, const O: usize, const P: usize>
+impl<E: Unit, A: Allocator + Clone, const M: usize, const N: usize, const O: usize, const P: usize>
     TensorToArray<Rank4<M, N, O, P>, E> for Cpu<A>
 {
     type Array = [[[[E; P]; O]; N]; M];

@@ -57,7 +57,7 @@ impl SgdKernel<crate::dtypes::AMP<crate::dtypes::f16>> for Cpu {
     }
 }
 
-impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone + 'static> SgdKernel<E> for Cpu<A> {
+impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone> SgdKernel<E> for Cpu<A> {
     fn sgd_kernel(
         &self,
         cfg: &SgdConfig,

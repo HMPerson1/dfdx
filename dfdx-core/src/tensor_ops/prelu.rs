@@ -18,7 +18,7 @@ use super::{cmp::*, BroadcastTo, ChooseFrom, Device, TryMul};
 /// let r = t.prelu(a);
 /// assert_eq!(r.array(), [-0.05, 0.0, 1.0, 2.0]);
 /// ```
-pub fn prelu<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D> + Merge<R>, R: Default>(
+pub fn prelu<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D> + Merge<R>, R: Default>(
     lhs: Tensor<S, E, D, T>,
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T> {
@@ -26,7 +26,7 @@ pub fn prelu<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D> + Merge<R>, R: Defa
 }
 
 /// Computes `prelu`, but with a scalar value. `max(0, t) + a*min(0, t)`
-pub fn leakyrelu<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn leakyrelu<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     lhs: Tensor<S, E, D, T>,
     rhs: E,
 ) -> Tensor<S, E, D, T> {
@@ -57,10 +57,10 @@ pub trait TryPReLU<T = Self>: Sized {
     fn try_prelu(self, rhs: T) -> Result<Self, Error>;
 }
 
-impl<S: Shape, E: Dtype, D, LhsTape: Tape<E, D>, R> TryPReLU<Tensor<S, E, D, R>>
+impl<'a, S: Shape, E: Dtype, D, LhsTape: Tape<'a, E, D>, R> TryPReLU<Tensor<S, E, D, R>>
     for Tensor<S, E, D, LhsTape>
 where
-    D: Device<E>,
+    D: Device<E> + 'a,
     LhsTape: Merge<R>,
 {
     /// See [prelu]
@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>> TryPReLU<E> for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>> TryPReLU<E> for Tensor<S, E, D, T> {
     /// See [prelu]
     fn try_prelu(self, rhs: E) -> Result<Self, Error> {
         let dev = self.device.clone();

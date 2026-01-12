@@ -4,7 +4,7 @@ use crate::prelude::cpu::{LendingIterator, NdIndex};
 
 use super::*;
 
-impl<E: Unit, A: Allocator + Clone + 'static> SliceKernel<E> for Cpu<A> {
+impl<E: Unit, A: Allocator + Clone> SliceKernel<E> for Cpu<A> {
     fn forward<Src: Shape + SliceShape<Slice>, Slice>(
         &self,
         inp: &Tensor<Src, E, Self>,

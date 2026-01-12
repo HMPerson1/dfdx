@@ -56,11 +56,11 @@ pub trait TryConcatAlong<Ax>: Sized {
 }
 
 #[allow(deprecated)]
-impl<A, B, Ax, E: Dtype, D, T: Tape<E, D>, R: Tape<E, D>> TryConcatAlong<Ax>
+impl<'a, A, B, Ax, E: Dtype, D, T: Tape<'a, E, D>, R: Tape<'a, E, D>> TryConcatAlong<Ax>
     for (Tensor<A, E, D, T>, Tensor<B, E, D, R>)
 where
     Ax: Axes<Array = [isize; 1]>,
-    D: ConcatAlongKernel<E> + ZerosTensor<E>,
+    D: ConcatAlongKernel<E> + ZerosTensor<E> + 'a,
     A: Shape + HasAxes<Ax>,
     B: Shape<Concrete = A::Concrete> + HasAxes<Ax>,
     (A, B): TryConcatAlong<Ax>,

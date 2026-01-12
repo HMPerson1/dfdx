@@ -26,22 +26,22 @@ pub struct BCEKernelOp;
 ///
 /// See <https://www.tensorflow.org/api_docs/python/tf/nn/sigmoid_cross_entropy_with_logits>
 /// for more information on this.
-pub fn bce_with_logits<S: Shape, E: Dtype, D: BinaryKernel<BCEKernelOp, E>, LTape, RTape>(
+pub fn bce_with_logits<'a, S: Shape, E: Dtype, D: BinaryKernel<BCEKernelOp, E> + 'a, LTape, RTape>(
     logits: Tensor<S, E, D, LTape>,
     probs: Tensor<S, E, D, RTape>,
 ) -> Tensor<S, E, D, LTape>
 where
-    LTape: Tape<E, D> + Merge<RTape>,
-    RTape: Tape<E, D>,
+    LTape: Tape<'a, E, D> + Merge<RTape>,
+    RTape: Tape<'a, E, D>,
 {
     logits.bce_with_logits(probs)
 }
 
-impl<S: Shape, E: Dtype, D: BinaryKernel<BCEKernelOp, E>, LTape: Tape<E, D>>
+impl<'a, S: Shape, E: Dtype, D: BinaryKernel<BCEKernelOp, E> + 'a, LTape: Tape<'a, E, D>>
     Tensor<S, E, D, LTape>
 {
     /// See [bce_with_logits]
-    pub fn bce_with_logits<RTape: Tape<E, D>>(self, prob: Tensor<S, E, D, RTape>) -> Self
+    pub fn bce_with_logits<RTape: Tape<'a, E, D>>(self, prob: Tensor<S, E, D, RTape>) -> Self
     where
         LTape: Merge<RTape>,
     {
@@ -53,7 +53,7 @@ impl<S: Shape, E: Dtype, D: BinaryKernel<BCEKernelOp, E>, LTape: Tape<E, D>>
         prob: Tensor<S, E, D, RTape>,
     ) -> Result<Self, crate::tensor::Error>
     where
-        RTape: Tape<E, D>,
+        RTape: Tape<'a, E, D>,
         LTape: Merge<RTape>,
     {
         try_binary_op(BCEKernelOp, self, prob)

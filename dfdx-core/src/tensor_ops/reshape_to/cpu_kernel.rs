@@ -6,7 +6,7 @@ use crate::tensor::{
     Cpu, Error, Tensor, ZerosTensor,
 };
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::ReshapeKernel<E> for Cpu<A> {
+impl<E: Dtype, A: Allocator + Clone> super::ReshapeKernel<E> for Cpu<A> {
     fn forward<Src: Shape, Dst: Shape>(
         &self,
         dst: &Dst,

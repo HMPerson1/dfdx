@@ -60,7 +60,7 @@ pub trait SumTo: Sized + HasShape {
         Self::Shape: ReduceShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: SumKernel<E>, T: Tape<E, D>> SumTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: SumKernel<E> + 'a, T: Tape<'a, E, D>> SumTo for Tensor<S, E, D, T> {
     fn try_sum<Dst: Shape, Ax: Axes>(self) -> Result<Self::WithShape<Dst>, Error>
     where
         Self::Shape: ReduceShapeTo<Dst, Ax>,

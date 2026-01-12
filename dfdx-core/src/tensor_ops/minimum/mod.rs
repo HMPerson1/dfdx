@@ -25,14 +25,14 @@ pub struct MinimumKernelOp;
 /// let b = dev.tensor([[1.0, 0.5, 1.0], [-2.0, 2.0, -3.5]]);
 /// let r = a.minimum(b);
 /// assert_eq!(r.array(), [[1.0, 0.5, 1.0], [-2.0, -2.0, -3.5]]);
-pub fn minimum<S: Shape, E: Dtype, D: Device<E>, LTape: Tape<E, D> + Merge<R>, R: Default>(
+pub fn minimum<'a, S: Shape, E: Dtype, D: Device<E> + 'a, LTape: Tape<'a, E, D> + Merge<R>, R: Default>(
     lhs: Tensor<S, E, D, LTape>,
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, LTape> {
     lhs.minimum(rhs)
 }
 
-impl<S: Shape, E: Dtype, D: Device<E>, LTape: Tape<E, D>> Tensor<S, E, D, LTape> {
+impl<'a, S: Shape, E: Dtype, D: Device<E> + 'a, LTape: Tape<'a, E, D>> Tensor<S, E, D, LTape> {
     /// See [minimum]
     pub fn minimum<R: Default>(self, rhs: Tensor<S, E, D, R>) -> Self
     where

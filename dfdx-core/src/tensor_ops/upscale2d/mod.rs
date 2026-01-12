@@ -155,14 +155,14 @@ pub trait TryUpscale2D: Sized {
 }
 impl<S: Shape, E: Dtype, D: Storage<E>, T> TryUpscale2D for Tensor<S, E, D, T> {}
 
-impl<
+impl<'a, 
         C: Dim,
         H: Dim,
         W: Dim,
         E: Dtype,
         M: UpscaleMethod,
-        D: Upscale2DKernel<E, M> + ZerosTensor<E>,
-        T: Tape<E, D>,
+        D: Upscale2DKernel<E, M> + ZerosTensor<E> + 'a,
+        T: Tape<'a, E, D>,
     > GenericUpscale2D<M> for Tensor<(C, H, W), E, D, T>
 {
     type Output<OH: Dim, OW: Dim> = Tensor<(C, OH, OW), E, D, T>;
@@ -198,15 +198,15 @@ impl<
     }
 }
 
-impl<
+impl<'a, 
         B: Dim,
         C: Dim,
         H: Dim,
         W: Dim,
         E: Dtype,
         M: UpscaleMethod,
-        D: Upscale2DKernel<E, M> + ZerosTensor<E>,
-        T: 'static + Tape<E, D>,
+        D: Upscale2DKernel<E, M> + ZerosTensor<E> + 'a,
+        T: Tape<'a, E, D>,
     > GenericUpscale2D<M> for Tensor<(B, C, H, W), E, D, T>
 {
     type Output<OH: Dim, OW: Dim> = Tensor<(B, C, OH, OW), E, D, T>;

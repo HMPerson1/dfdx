@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-impl<E: Dtype, A: Allocator + Clone + 'static> super::ChooseKernel<E> for Cpu<A> {
+impl<E: Dtype, A: Allocator + Clone> super::ChooseKernel<E> for Cpu<A> {
     fn forward<S: Shape>(
         &self,
         cond: &Tensor<S, bool, Self>,

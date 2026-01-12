@@ -39,12 +39,12 @@ pub struct ScalarSubKernelOp<E> {
 /// let r = a - 1.0;
 /// assert_eq!(r.array(), [[0.0, 1.0, 2.0], [-2.0, -3.0, -4.0]]);
 /// ```
-pub fn sub<S: Shape, E: Dtype, D, T: Tape<E, D> + Merge<R>, R>(
+pub fn sub<'a, S: Shape, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R>(
     lhs: Tensor<S, E, D, T>,
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T>
 where
-    D: BinaryKernel<BinarySubKernelOp, E>,
+    D: BinaryKernel<BinarySubKernelOp, E> + 'a,
 {
     lhs - rhs
 }
@@ -55,7 +55,7 @@ pub trait TrySub<Rhs = Self> {
     fn try_sub(self, rhs: Rhs) -> Result<Self::Output, Error>;
 }
 
-impl<S: Shape, E: Dtype, D: BinaryKernel<BinarySubKernelOp, E>, LTape: Tape<E, D>, R>
+impl<'a, S: Shape, E: Dtype, D: BinaryKernel<BinarySubKernelOp, E> + 'a, LTape: Tape<'a, E, D>, R>
     TrySub<Tensor<S, E, D, R>> for Tensor<S, E, D, LTape>
 where
     LTape: Merge<R>,
@@ -66,9 +66,9 @@ where
     }
 }
 
-impl<S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<E, D>> TrySub<Rhs> for Tensor<S, E, D, T>
+impl<'a, S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<'a, E, D>> TrySub<Rhs> for Tensor<S, E, D, T>
 where
-    D: UnaryKernel<ScalarSubKernelOp<E>, E>,
+    D: UnaryKernel<ScalarSubKernelOp<E>, E> + 'a,
 {
     type Output = Self;
     fn try_sub(self, rhs: Rhs) -> Result<Self, Error> {
@@ -78,7 +78,7 @@ where
     }
 }
 
-impl<S: Shape, E: Dtype, D: Storage<E>, LTape: Tape<E, D>, Rhs> std::ops::Sub<Rhs>
+impl<'a, S: Shape, E: Dtype, D: Storage<E>, LTape: Tape<'a, E, D>, Rhs> std::ops::Sub<Rhs>
     for Tensor<S, E, D, LTape>
 where
     Self: TrySub<Rhs>,

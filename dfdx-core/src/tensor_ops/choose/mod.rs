@@ -54,12 +54,12 @@ pub trait ChooseFrom<Lhs, Rhs>: Sized {
     fn try_choose(self, lhs: Lhs, rhs: Rhs) -> Result<Self::Output, Error>;
 }
 
-impl<
+impl<'a, 
         S: Shape,
         E: Dtype,
-        D: ChooseKernel<E>,
-        LhsTape: Tape<E, D> + Merge<RhsTape>,
-        RhsTape: Tape<E, D>,
+        D: ChooseKernel<E> + 'a,
+        LhsTape: Tape<'a, E, D> + Merge<RhsTape>,
+        RhsTape: Tape<'a, E, D>,
     > ChooseFrom<Tensor<S, E, D, LhsTape>, Tensor<S, E, D, RhsTape>> for Tensor<S, bool, D>
 {
     type Output = Tensor<S, E, D, LhsTape>;

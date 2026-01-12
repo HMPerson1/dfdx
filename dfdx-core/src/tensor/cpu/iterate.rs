@@ -119,7 +119,7 @@ pub(crate) struct StridedMutIndexIter<'a, S: Shape, E> {
     index: NdIndex<S>,
 }
 
-impl<S: Shape, E: Unit, T, A: Allocator + Clone + 'static> Tensor<S, E, Cpu<A>, T> {
+impl<S: Shape, E: Unit, T, A: Allocator + Clone> Tensor<S, E, Cpu<A>, T> {
     #[inline]
     pub(crate) fn buf_iter(&self) -> std::slice::Iter<'_, E> {
         self.data.iter()

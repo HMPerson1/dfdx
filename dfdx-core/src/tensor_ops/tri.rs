@@ -6,7 +6,7 @@ use super::TryMul;
 /// Applies a 2D lower triangular mask by setting values above the diagonal to `E::default()`.
 ///
 /// See [`TriangleTensor::lower_tri`].
-pub fn lower_tri<S: Shape, E: Dtype, D: TriangleTensor<E>, T: Tape<E, D>>(
+pub fn lower_tri<'a, S: Shape, E: Dtype, D: TriangleTensor<E>, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
     diagonal: impl Into<Option<isize>>,
 ) -> Tensor<S, E, D, T>
@@ -19,7 +19,7 @@ where
 /// Applies a 2D upper triangular mask by setting values below the diagonal to `E::default()`.
 ///
 /// See [`TriangleTensor::upper_tri`].
-pub fn upper_tri<S: Shape, E: Dtype, D: TriangleTensor<E>, T: Tape<E, D>>(
+pub fn upper_tri<'a, S: Shape, E: Dtype, D: TriangleTensor<E>, T: Tape<'a, E, D>>(
     t: Tensor<S, E, D, T>,
     diagonal: impl Into<Option<isize>>,
 ) -> Tensor<S, E, D, T>
@@ -29,7 +29,7 @@ where
     t.upper_tri(diagonal)
 }
 
-impl<S: Shape, E: Dtype, D: TriangleTensor<E>, T: Tape<E, D>> Tensor<S, E, D, T>
+impl<'a, S: Shape, E: Dtype, D: TriangleTensor<E>, T: Tape<'a, E, D>> Tensor<S, E, D, T>
 where
     Self: TryMul<Tensor<S, E, D>, Output = Self>,
 {

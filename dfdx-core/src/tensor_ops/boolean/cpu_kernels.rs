@@ -7,7 +7,7 @@ use crate::{
 
 use super::BooleanKernel;
 
-impl<A: Allocator + Clone + 'static> Cpu<A> {
+impl<A: Allocator + Clone> Cpu<A> {
     fn eval_binary<S: Shape, E: Unit, O: Fn(E, E) -> E>(
         &self,
         op: O,
@@ -25,7 +25,7 @@ impl<A: Allocator + Clone + 'static> Cpu<A> {
     }
 }
 
-impl<A: Allocator + Clone + 'static> BooleanKernel for Cpu<A> {
+impl<A: Allocator + Clone> BooleanKernel for Cpu<A> {
     fn not<S: Shape>(&self, inp: &Tensor<S, bool, Self>) -> Result<Tensor<S, bool, Self>, Error> {
         let mut out = inp.clone();
         for x in out.buf_iter_mut() {

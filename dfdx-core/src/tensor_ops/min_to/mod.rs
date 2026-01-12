@@ -63,7 +63,7 @@ pub trait MinTo: Sized + HasShape {
         Self::Shape: ReduceShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E: Dtype, D: MinReduceKernel<E>, T: Tape<E, D>> MinTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E: Dtype, D: MinReduceKernel<E> + 'a, T: Tape<'a, E, D>> MinTo for Tensor<S, E, D, T> {
     fn try_min<Dst: Shape, Ax: Axes>(self) -> Result<Self::WithShape<Dst>, Error>
     where
         Self::Shape: ReduceShapeTo<Dst, Ax>,

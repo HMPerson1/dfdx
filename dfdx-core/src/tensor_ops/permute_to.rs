@@ -35,7 +35,7 @@ pub trait PermuteTo: Sized + HasShape {
         Self::Shape: PermuteShapeTo<Dst, Ax>;
 }
 
-impl<S: Shape, E, D: Storage<E>, T: Tape<E, D>> PermuteTo for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E, D: Storage<E>, T: Tape<'a, E, D>> PermuteTo for Tensor<S, E, D, T> {
     fn try_permute<Dst: Shape, Ax: Axes>(self) -> Result<Self::WithShape<Dst>, Error>
     where
         Self::Shape: PermuteShapeTo<Dst, Ax>,

@@ -94,7 +94,7 @@ pub trait SelectTo<E, D: Storage<E> + Storage<usize>>: Sized + HasShape {
         Self::Shape: RemoveDimTo<Dst, Idx>;
 }
 
-impl<Src: Shape, E: Dtype, D: RemoveDimKernel<E>, T: Tape<E, D>> SelectTo<E, D>
+impl<'a, Src: Shape, E: Dtype, D: RemoveDimKernel<E> + 'a, T: Tape<'a, E, D>> SelectTo<E, D>
     for Tensor<Src, E, D, T>
 {
     fn try_select<Dst: Shape, Idx: Shape>(
@@ -166,7 +166,7 @@ pub trait GatherTo<E, D: Storage<E> + Storage<usize>>: Sized + HasShape {
         Self::Shape: ReplaceDimTo<Dst, Idx>;
 }
 
-impl<Src: Shape, E: Dtype, D: ReplaceDimKernel<E>, T: Tape<E, D>> GatherTo<E, D>
+impl<'a, Src: Shape, E: Dtype, D: ReplaceDimKernel<E> + 'a, T: Tape<'a, E, D>> GatherTo<E, D>
     for Tensor<Src, E, D, T>
 {
     fn try_gather<Dst: Shape, Idx: Shape>(

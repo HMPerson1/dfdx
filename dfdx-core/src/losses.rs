@@ -10,7 +10,7 @@ use crate::{
 /// This computes `(pred - targ).square().mean()`.
 ///
 /// See [MeanTo], [square()], and [sub()].
-pub fn mse_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn mse_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     pred: Tensor<S, E, D, T>,
     targ: Tensor<S, E, D>,
 ) -> Tensor<Rank0, E, D, T> {
@@ -21,7 +21,7 @@ pub fn mse_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
 /// This computes `(pred - targ).square().mean().sqrt()`
 ///
 /// See [mse_loss()] and [sqrt()]
-pub fn rmse_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn rmse_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     pred: Tensor<S, E, D, T>,
     targ: Tensor<S, E, D>,
 ) -> Tensor<Rank0, E, D, T> {
@@ -32,7 +32,7 @@ pub fn rmse_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
 /// This computes `(pred - targ).abs().mean()`
 ///
 /// See [MeanTo], [abs()], and [sub()]
-pub fn mae_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn mae_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     pred: Tensor<S, E, D, T>,
     targ: Tensor<S, E, D>,
 ) -> Tensor<Rank0, E, D, T> {
@@ -44,7 +44,7 @@ pub fn mae_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
 /// error is lower than `beta`.
 ///
 /// See [huber_error()]
-pub fn huber_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn huber_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     pred: Tensor<S, E, D, T>,
     targ: Tensor<S, E, D>,
     delta: impl Into<f64>,
@@ -59,7 +59,7 @@ pub fn huber_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
 /// It computes:
 /// 1. if `|x - y| < beta`: `0.5 * (x - y)^2 / beta`
 /// 2. otherwise: `|x - y| - 0.5 * beta`
-pub fn smooth_l1_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn smooth_l1_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     pred: Tensor<S, E, D, T>,
     targ: Tensor<S, E, D>,
     delta: impl Copy + Into<f64>,
@@ -77,7 +77,7 @@ pub fn smooth_l1_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
 ///
 /// - `logits`: The un-normalized output from a model. [log_softmax()] is called **in** this function
 /// - `target_probs`: Target containing probability vectors **NOT** class indices.
-pub fn cross_entropy_with_logits_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn cross_entropy_with_logits_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     logits: Tensor<S, E, D, T>,
     target_probs: Tensor<S, E, D>,
 ) -> Tensor<Rank0, E, D, T> {
@@ -96,7 +96,7 @@ pub fn cross_entropy_with_logits_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<
 ///
 /// - `logits`: The un-normalized output from a model. [log_softmax()] is called **in** this function
 /// - `target_probs`: Target containing probability vectors **NOT** class indices.
-pub fn kl_div_with_logits_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn kl_div_with_logits_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     logits: Tensor<S, E, D, T>,
     target_probs: Tensor<S, E, D>,
 ) -> Tensor<Rank0, E, D, T> {
@@ -116,7 +116,7 @@ pub fn kl_div_with_logits_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
 /// # Inputs
 /// - `logits` - unnormalized inputs. **NOT** output of sigmoid
 /// - `target_probs` - target values between 0 and 1.
-pub fn binary_cross_entropy_with_logits_loss<S: Shape, E: Dtype, D: Device<E>, T: Tape<E, D>>(
+pub fn binary_cross_entropy_with_logits_loss<'a, S: Shape, E: Dtype, D: Device<E> + 'a, T: Tape<'a, E, D>>(
     logits: Tensor<S, E, D, T>,
     target_probs: Tensor<S, E, D>,
 ) -> Tensor<Rank0, E, D, T> {
