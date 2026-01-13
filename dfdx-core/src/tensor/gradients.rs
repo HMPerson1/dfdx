@@ -177,21 +177,14 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 pub struct OwnedTape<'a, E, D: Storage<E>> {
     /// A list of (Time, BackwardOp) pairs. The Time is used to ensure operations
     /// from merged tapes are executed in the correct order.
-    // TODO: use allocator
-    pub(crate) operations: Vec<(UniqueId, BackwardOp<'a, E, D>)>,
+    pub(crate) operations: Vec<(UniqueId, BackwardOp<'a, E, D, D::Allocator>), D::Allocator>,
     pub(crate) gradients: Gradients<E, D>,
 }
 
-impl<E, D: Storage<E>> Default for OwnedTape<'_, E, D> {
-    fn default() -> Self {
-        Self {
-            operations: Default::default(),
-            gradients: Gradients::leaky(),
-        }
-    }
-}
-
-impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<'_, E, D> where <D as Storage<E>>::OwnedVec: std::fmt::Debug {
+impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for OwnedTape<'_, E, D>
+where
+    <D as Storage<E>>::OwnedVec: std::fmt::Debug,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OwnedTape")
             .field("num_operations", &self.operations.len())
@@ -200,16 +193,13 @@ impl<E: std::fmt::Debug, D: Storage<E> + std::fmt::Debug> std::fmt::Debug for Ow
     }
 }
 
-impl<E, D: Storage<E>> From<Gradients<E, D>> for OwnedTape<'_, E, D> {
-    fn from(gradients: Gradients<E, D>) -> Self {
+impl<E, D: Storage<E>> OwnedTape<'_, E, D> {
+    pub(crate) fn from_gradients_with_device(gradients: Gradients<E, D>, dev: &D) -> Self {
         Self {
-            operations: Default::default(),
+            operations: Vec::new_in(dev.allocator()),
             gradients,
         }
     }
-}
-
-impl<E, D: Storage<E>> OwnedTape<'_, E, D> {
     /// Compute the [Gradients]! This just runs all the operations on a new [Gradients] struct.
     ///
     /// Note that this method takes ownership of self, so it can't be called twice!
@@ -225,16 +215,26 @@ impl<E, D: Storage<E>> OwnedTape<'_, E, D> {
         }
         Ok(std::mem::replace(&mut self.gradients, Gradients::leaky()))
     }
+
+    pub fn hint_reserve(&mut self, ops: usize, grads: usize) {
+        self.operations.reserve(ops);
+        self.gradients.gradient_by_id.reserve(grads);
+    }
+
+    pub fn get_sizes(&self) -> (usize, usize) {
+        (self.operations.len(), self.gradients.gradient_by_id.len())
+    }
 }
 
-type BackwardOp<'a, E, D> = Box<dyn 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>>;
+type BackwardOp<'a, E, D, A> = Box<dyn 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>, A>;
 
 /// Contains nothing. When [Tape::add_backward_op] is called, this struct does nothing.
 #[derive(Default, Debug, Clone, Copy)]
 pub struct NoneTape;
 
 /// Something that can track backward operations.
-pub trait Tape<'a, E, D: Storage<E>>: Default + Merge<Self> + Merge<NoneTape> {
+pub trait Tape<'a, E, D: Storage<E>>: Merge<Self> + Merge<NoneTape> {
+    fn with_device(dev: &D) -> Self;
     /// Whether this object is currently tracking gradients. This is known at compile time.
     const OWNS_TAPE: bool;
     fn add_backward_op<F>(&mut self, operation: F)
@@ -243,16 +243,25 @@ pub trait Tape<'a, E, D: Storage<E>>: Default + Merge<Self> + Merge<NoneTape> {
 }
 
 impl<'a, E, D: Storage<E>> Tape<'a, E, D> for OwnedTape<'a, E, D> {
+    fn with_device(dev: &D) -> Self {
+        Self::from_gradients_with_device(Gradients::leaky(), dev)
+    }
     const OWNS_TAPE: bool = true;
     fn add_backward_op<F>(&mut self, operation: F)
     where
         F: 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>,
     {
-        self.operations.push((unique_id(), Box::new(operation)));
+        self.operations.push((
+            unique_id(),
+            Box::new_in(operation, self.operations.allocator().clone()),
+        ));
     }
 }
 
 impl<'a, E, D: Storage<E>> Tape<'a, E, D> for NoneTape {
+    fn with_device(_: &D) -> Self {
+        Self {}
+    }
     const OWNS_TAPE: bool = false;
     fn add_backward_op<F>(&mut self, _: F)
     where

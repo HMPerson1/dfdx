@@ -2,7 +2,7 @@
 use rand::distributions::Distribution;
 #[cfg(test)]
 use rand_distr::{Standard, StandardNormal};
-use std::vec::Vec;
+use std::{alloc::Allocator, vec::Vec};
 
 use crate::shapes::*;
 
@@ -17,6 +17,7 @@ pub trait RandomU64 {
 pub trait Storage<E>: Clone {
     type SharedVec: Clone;
     type OwnedVec: Clone;
+    type Allocator: Allocator + Clone;
 
     fn try_alloc_grad(&self, len: usize) -> Result<Self::OwnedVec, Error>;
 
@@ -25,6 +26,8 @@ pub trait Storage<E>: Clone {
     fn tensor_to_vec<S: Shape, T>(&self, tensor: &Tensor<S, E, Self, T>) -> Vec<E>;
 
     fn len(&self, v: &Self::SharedVec) -> usize;
+
+    fn allocator(&self) -> Self::Allocator;
 }
 
 pub trait Synchronize {

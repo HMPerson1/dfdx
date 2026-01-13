@@ -133,8 +133,10 @@ where
 
     // need to split tape and transform into Vec for ease of implementation
     let mut tensors = Vec::with_capacity(new_dim.size());
-    let mut tape: T = Default::default();
-    for item in items.into_iter() {
+    let mut items = items.into_iter();
+    let (first_tensor, mut tape) = items.next().unwrap().split_tape();
+    tensors.push(first_tensor);
+    for item in items {
         let (item, rhs): (Tensor<S, E, D>, T) = item.split_tape();
         tape = tape.merge(rhs);
         tensors.push(item);

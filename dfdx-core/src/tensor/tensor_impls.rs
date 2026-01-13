@@ -91,13 +91,12 @@ impl<'a, S: Shape, E: Unit, F: Unit, D: Storage<F> + Storage<E>> Trace<'a, E, D>
 {
     type Traced = Tensor<S, F, D, OwnedTape<'a, E, D>>;
     fn leaky_traced(self) -> Self::Traced {
-        self.put_tape(Default::default())
+        let tape = OwnedTape::with_device(&self.device);
+        self.put_tape(tape)
     }
     fn traced(self, gradients: Gradients<E, D>) -> Self::Traced {
-        self.put_tape(OwnedTape {
-            gradients,
-            operations: std::vec::Vec::new(),
-        })
+        let tape = OwnedTape::from_gradients_with_device(gradients, &self.device);
+        self.put_tape(tape)
     }
 }
 
@@ -110,7 +109,7 @@ impl<S: Shape, E, D: Storage<E>, T> Tensor<S, E, D, T> {
             shape: self.shape,
             strides: self.strides,
             device: self.device.clone(),
-            tape: Default::default(),
+            tape: New::with_device(&self.device),
         }
     }
 
@@ -187,7 +186,7 @@ pub trait WithEmptyTape {
     fn with_empty_tape(&self) -> Self;
 }
 
-impl<S: Shape, E, D: Storage<E>, T: Default> WithEmptyTape for Tensor<S, E, D, T> {
+impl<'a, S: Shape, E, D: Storage<E>, T: Tape<'a, E, D>> WithEmptyTape for Tensor<S, E, D, T> {
     fn with_empty_tape(&self) -> Self {
         Tensor {
             id: self.id,
@@ -195,7 +194,7 @@ impl<S: Shape, E, D: Storage<E>, T: Default> WithEmptyTape for Tensor<S, E, D, T
             shape: self.shape,
             strides: self.strides,
             device: self.device.clone(),
-            tape: Default::default(),
+            tape: T::with_device(&self.device),
         }
     }
 }

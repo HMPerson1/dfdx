@@ -29,6 +29,7 @@ impl Default for Cpu {
 impl<E: Unit, A: Allocator + Clone> Storage<E> for Cpu<A> {
     type SharedVec = Arc<[E], A>;
     type OwnedVec = Vec<E, A>;
+    type Allocator = A;
 
     fn try_alloc_grad(&self, len: usize) -> Result<Vec<E, A>, Error> {
         Ok(std::vec::from_elem_in(E::default(), len, self.alloc.clone()))
@@ -49,6 +50,10 @@ impl<E: Unit, A: Allocator + Clone> Storage<E> for Cpu<A> {
             buf.push(*v);
         }
         buf
+    }
+
+    fn allocator(&self) -> Self::Allocator {
+        self.alloc.clone()
     }
 }
 
