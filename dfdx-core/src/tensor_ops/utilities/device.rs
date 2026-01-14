@@ -2,8 +2,7 @@ use std::alloc::Allocator;
 
 use super::super::ops::{BinaryKernel, UnaryKernel};
 use crate::{
-    dtypes::*,
-    tensor::{CopySlice, Storage},
+    dtypes::*, prelude::ops::{BinaryKernel2, UnaryKernel2}, tensor::{CopySlice, Storage}
 };
 
 /// A [Storage] that requires all the tensor ops implementations
@@ -55,13 +54,13 @@ pub trait Device<E: Dtype>:
     // scalar arithmetic
     + UnaryKernel<super::super::add::ScalarAddKernelOp<E>, E>
     + UnaryKernel<super::super::sub::ScalarSubKernelOp<E>, E>
-    + UnaryKernel<super::super::mul::ScalarMulKernelOp<E>, E>
+    + UnaryKernel2<super::super::mul::ScalarMulKernelOp<E>, E>
     + UnaryKernel<super::super::div::ScalarDivKernelOp<E>, E>
 
     // binary arithmetic
     + BinaryKernel<super::super::add::BinaryAddKernelOp, E>
     + BinaryKernel<super::super::sub::BinarySubKernelOp, E>
-    + BinaryKernel<super::super::mul::BinaryMulKernelOp, E>
+    + BinaryKernel2<super::super::mul::BinaryMulKernelOp, E>
     + BinaryKernel<super::super::div::BinaryDivKernelOp, E>
 
     // boolean operations

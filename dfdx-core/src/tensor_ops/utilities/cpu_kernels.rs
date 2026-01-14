@@ -1,4 +1,4 @@
-use std::{alloc::Allocator, borrow::Cow};
+use std::{alloc::Allocator, borrow::Cow, hint, rc::Rc};
 
 use super::ops::{BinaryKernel, BinaryKernel2, IsNeeded, UnaryKernel, UnaryKernel2};
 use crate::{
@@ -136,16 +136,16 @@ impl<E: Dtype, Op: BinaryDerivative<E>, A: Allocator + Clone> BinaryKernel<Op, E
                     let rhs_count = std::rc::Rc::strong_count(&rhs.data);
                     if rhs_valid && (rhs_count == 1 || !lhs_valid || lhs_count != 1) {
                         rhs.id = unique_id();
-                        let mut lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
-                        for r in rhs.buf_iter_mut() {
-                            *r = op.f(&lhs.data[lhs_idx.next().unwrap()], r);
+                        let lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
+                        for (i, r) in rhs.buf_iter_mut().enumerate() {
+                            *r = op.f(&lhs.data[lhs_idx.get_strided_index(i)], r);
                         }
                         Ok(rhs)
                     } else {
                         lhs.id = unique_id();
-                        let mut rhs_idx = NdIndex::new(rhs.shape, rhs.strides);
-                        for l in lhs.buf_iter_mut() {
-                            *l = op.f(l, &rhs.data[rhs_idx.next().unwrap()]);
+                        let rhs_idx = NdIndex::new(rhs.shape, rhs.strides);
+                        for (i, l) in lhs.buf_iter_mut().enumerate() {
+                            *l = op.f(l, &rhs.data[rhs_idx.get_strided_index(i)]);
                         }
                         Ok(lhs)
                     }
@@ -276,36 +276,74 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
         mut lhs: Tensor<S, E, Self>,
         mut rhs: Tensor<S, E, Self>,
     ) -> Result<Tensor<S, E, Self>, Error> {
-        let lhs_valid = lhs.strides == lhs.shape.strides();
-        let rhs_valid = rhs.strides == rhs.shape.strides();
-        if lhs_valid || rhs_valid {
-            let lhs_count = std::rc::Rc::strong_count(&lhs.data);
-            let rhs_count = std::rc::Rc::strong_count(&rhs.data);
-            if rhs_valid && (rhs_count == 1 || !lhs_valid || lhs_count != 1) {
+        // insane gymastics to enable auto-vectorization which somehow also reduces code size
+        enum OpStrategy<L, R> {
+            ClobberRhs(Option<R>, bool),
+            ClobberLhs(Option<L>, bool),
+            AllocNew,
+        }
+        #[inline]
+        fn mk_strategy<L, R>(l: Option<Option<L>>, r: Option<Option<R>>) -> OpStrategy<L, R> {
+            match (l, r) {
+                (l, Some(Some(d))) => OpStrategy::ClobberRhs(Some(d), l.is_some()),
+                (Some(Some(d)), r) => OpStrategy::ClobberLhs(Some(d), r.is_some()),
+                (l, Some(_)) => OpStrategy::ClobberRhs(None, l.is_some()),
+                (Some(_), r) => OpStrategy::ClobberLhs(None, r.is_some()),
+                (None, None) => OpStrategy::AllocNew,
+            }
+        }
+
+        let lhs_data = (lhs.strides == lhs.shape.strides()).then(|| Rc::get_mut(&mut lhs.data));
+        let rhs_data = (rhs.strides == rhs.shape.strides()).then(|| Rc::get_mut(&mut rhs.data));
+        match mk_strategy(lhs_data, rhs_data) {
+            OpStrategy::ClobberRhs(rhs_data, lhs_contig) => {
+                let rhs_data = match rhs_data {
+                    Some(d) => d,
+                    None => Rc::make_mut(&mut rhs.data),
+                };
                 rhs.id = unique_id();
-                let mut lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
-                for r in rhs.buf_iter_mut() {
-                    *r = op.f(&lhs.data[lhs_idx.next().unwrap()], r);
+                if lhs_contig {
+                    for (r, l) in rhs_data.into_iter().zip(&lhs.data[..]) {
+                        *r = op.f(l, r);
+                    }
+                } else {
+                    let lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
+                    for (i, r) in rhs_data.into_iter().enumerate() {
+                        *r = op.f(&lhs.data[lhs_idx.get_strided_index_slow(i)], r);
+                    }
                 }
                 Ok(rhs)
-            } else {
+            }
+            OpStrategy::ClobberLhs(lhs_data, rhs_contig) => {
+                let lhs_data = match lhs_data {
+                    Some(d) => d,
+                    None => Rc::make_mut(&mut lhs.data),
+                };
                 lhs.id = unique_id();
-                let mut rhs_idx = NdIndex::new(rhs.shape, rhs.strides);
-                for l in lhs.buf_iter_mut() {
-                    *l = op.f(l, &rhs.data[rhs_idx.next().unwrap()]);
+                if rhs_contig {
+                    for (l, r) in lhs_data.into_iter().zip(&rhs.data[..]) {
+                        *l = op.f(l, r);
+                    }
+                } else {
+                    let rhs_idx = NdIndex::new(rhs.shape, rhs.strides);
+                    for (i, l) in lhs_data.into_iter().enumerate() {
+                        *l = op.f(l, &rhs.data[rhs_idx.get_strided_index_slow(i)]);
+                    }
                 }
                 Ok(lhs)
             }
-        } else {
-            let mut out = self.try_zeros_like(&lhs.shape)?;
-            let mut lhs_iter = lhs.iter();
-            let mut rhs_iter = rhs.iter();
-            for o in out.buf_iter_mut() {
-                let l = lhs_iter.next().unwrap();
-                let r = rhs_iter.next().unwrap();
-                *o = op.f(l, r);
+            OpStrategy::AllocNew => {
+                hint::cold_path();
+                let mut out = self.try_zeros_like(&lhs.shape)?;
+                let lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
+                let rhs_idx = NdIndex::new(rhs.shape, rhs.strides);
+                for (i, o) in out.buf_iter_mut().enumerate() {
+                    let l = &lhs.data[lhs_idx.get_strided_index_slow(i)];
+                    let r = &rhs.data[rhs_idx.get_strided_index_slow(i)];
+                    *o = op.f(l, r);
+                }
+                Ok(out)
             }
-            Ok(out)
         }
     }
 
@@ -321,13 +359,13 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
         grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
-        let mut lhs_idx = NdIndex::new(*lhs_ghost.shape(), lhs_ghost.strides());
-        let mut rhs_idx = NdIndex::new(*rhs_ghost.shape(), rhs_ghost.strides());
+        let lhs_idx = NdIndex::new(*lhs_ghost.shape(), lhs_ghost.strides());
+        let rhs_idx = NdIndex::new(*rhs_ghost.shape(), rhs_ghost.strides());
         // NOTE: we can use .buf_iter() here because we know the outcome of this op is
         // contiguous from forward
         for (out_i, &go) in grad_out.iter().enumerate() {
-            let lhs_i = lhs_idx.next().unwrap();
-            let rhs_i = rhs_idx.next().unwrap();
+            let lhs_i = lhs_idx.get_strided_index_slow(out_i);
+            let rhs_i = rhs_idx.get_strided_index_slow(out_i);
             let l = Self::BackLhsNeeded::fmap(&lhs_data, |x| &x[lhs_i]);
             let r = Self::BackRhsNeeded::fmap(&rhs_data, |x| &x[rhs_i]);
             let f = Self::BackOutNeeded::fmap(&out, |x| &x.data[out_i]);

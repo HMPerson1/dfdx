@@ -45,6 +45,7 @@ impl<A: Allocator + Clone> Cpu<A> {
 }
 
 impl<E: Unit, A: Allocator + Clone> ZerosTensor<E> for Cpu<A> {
+    #[inline]
     fn try_zeros_like<S: HasShape>(&self, src: &S) -> Result<Tensor<S::Shape, E, Self>, Error> {
         let shape = *src.shape();
         let strides = shape.strides();

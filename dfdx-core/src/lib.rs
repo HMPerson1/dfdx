@@ -101,7 +101,7 @@
 //!
 //! and **much much more!**
 
-#![feature(allocator_api, clone_to_uninit)]
+#![feature(allocator_api, cold_path)]
 #![cfg_attr(all(feature = "no-std", not(feature = "std")), no_std)]
 #![allow(incomplete_features)]
 #![cfg_attr(feature = "nightly", feature(generic_const_exprs))]

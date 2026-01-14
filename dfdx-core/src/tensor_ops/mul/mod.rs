@@ -43,7 +43,7 @@ pub fn mul<'a, S: Shape, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Default>(
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T>
 where
-    D: BinaryKernel<BinaryMulKernelOp, E> + 'a,
+    D: BinaryKernel2<BinaryMulKernelOp, E> + 'a,
 {
     lhs * rhs
 }
@@ -54,26 +54,26 @@ pub trait TryMul<Rhs = Self> {
     fn try_mul(self, rhs: Rhs) -> Result<Self::Output, Error>;
 }
 
-impl<'a, S: Shape, E: Dtype, D: BinaryKernel<BinaryMulKernelOp, E> + 'a, LhsTape: Tape<'a, E, D>, R>
+impl<'a, S: Shape, E: Dtype, D: BinaryKernel2<BinaryMulKernelOp, E> + 'a, LhsTape: Tape<'a, E, D>, R>
     TryMul<Tensor<S, E, D, R>> for Tensor<S, E, D, LhsTape>
 where
     LhsTape: Merge<R>,
 {
     type Output = Self;
     fn try_mul(self, rhs: Tensor<S, E, D, R>) -> Result<Self, Error> {
-        try_binary_op(BinaryMulKernelOp, self, rhs)
+        try_binary_op2(BinaryMulKernelOp, self, rhs)
     }
 }
 
 impl<'a, S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<'a, E, D>> TryMul<Rhs> for Tensor<S, E, D, T>
 where
-    D: UnaryKernel<ScalarMulKernelOp<E>, E> + 'a,
+    D: UnaryKernel2<ScalarMulKernelOp<E>, E> + 'a,
 {
     type Output = Self;
     fn try_mul(self, rhs: Rhs) -> Result<Self, Error> {
         let rhs: f64 = rhs.into();
         let scalar: E = E::from_f64(rhs).unwrap();
-        try_unary_op(ScalarMulKernelOp { scalar }, self)
+        try_unary_op2(ScalarMulKernelOp { scalar }, self)
     }
 }
 

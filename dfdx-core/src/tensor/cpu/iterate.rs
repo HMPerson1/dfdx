@@ -29,13 +29,21 @@ impl<S: Shape> NdIndex<S> {
 }
 
 impl<S: Shape> NdIndex<S> {
-    pub(crate) fn get_strided_index(&self, mut idx: usize) -> usize {
+    #[inline]
+    pub(crate) fn get_strided_index(&self, idx: usize) -> usize {
+        if self.contiguous.is_some() {
+            idx
+        } else {
+            self.get_strided_index_slow(idx)
+        }
+    }
+    pub(crate) fn get_strided_index_slow(&self, mut idx: usize) -> usize {
         let mut out = 0;
 
-        let shape = self.shape.as_ref();
-        let strides = self.strides.as_ref();
-
-        for (dim, stride) in shape.iter().zip(strides.iter()).rev() {
+        // for (dim, stride) in shape.iter().zip(strides.iter()).rev() {
+        for i in 0..S::NUM_DIMS {
+            let dim = self.shape[S::NUM_DIMS - 1 - i];
+            let stride = self.strides[S::NUM_DIMS - 1 - i];
             out += (idx % dim) * stride;
             idx /= dim;
         }
