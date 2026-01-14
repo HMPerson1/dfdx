@@ -24,7 +24,7 @@ impl<E: Dtype + Float, A: Allocator + Clone> super::MaxReduceKernel<E> for Cpu<A
             for i in inp.buf_iter() {
                 tmp = i.max(tmp);
             }
-            std::sync::Arc::get_mut(&mut out.data).unwrap()[0] = tmp;
+            std::rc::Rc::get_mut(&mut out.data).unwrap()[0] = tmp;
         } else {
             let num_elems_reduced = <Src as HasAxes<Ax>>::size(&inp.shape);
             let inp_buf = inp.data.as_ref();

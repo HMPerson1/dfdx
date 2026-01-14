@@ -132,8 +132,8 @@ impl<E: Dtype, Op: BinaryDerivative<E>, A: Allocator + Clone> BinaryKernel<Op, E
                 let lhs_valid = lhs.strides == lhs.shape.strides();
                 let rhs_valid = rhs.strides == rhs.shape.strides();
                 if lhs_valid || rhs_valid {
-                    let lhs_count = std::sync::Arc::strong_count(&lhs.data);
-                    let rhs_count = std::sync::Arc::strong_count(&rhs.data);
+                    let lhs_count = std::rc::Rc::strong_count(&lhs.data);
+                    let rhs_count = std::rc::Rc::strong_count(&rhs.data);
                     if rhs_valid && (rhs_count == 1 || !lhs_valid || lhs_count != 1) {
                         rhs.id = unique_id();
                         let mut lhs_idx = NdIndex::new(lhs.shape, lhs.strides);
@@ -279,8 +279,8 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
         let lhs_valid = lhs.strides == lhs.shape.strides();
         let rhs_valid = rhs.strides == rhs.shape.strides();
         if lhs_valid || rhs_valid {
-            let lhs_count = std::sync::Arc::strong_count(&lhs.data);
-            let rhs_count = std::sync::Arc::strong_count(&rhs.data);
+            let lhs_count = std::rc::Rc::strong_count(&lhs.data);
+            let rhs_count = std::rc::Rc::strong_count(&rhs.data);
             if rhs_valid && (rhs_count == 1 || !lhs_valid || lhs_count != 1) {
                 rhs.id = unique_id();
                 let mut lhs_idx = NdIndex::new(lhs.shape, lhs.strides);

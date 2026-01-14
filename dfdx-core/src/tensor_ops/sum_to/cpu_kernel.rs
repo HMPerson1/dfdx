@@ -26,7 +26,7 @@ impl super::SumKernel<crate::dtypes::AMP<crate::dtypes::f16>> for Cpu {
                 tmp += v.0.to_f32();
             }
             let scale = (inp.shape.num_elements() / inp.data.len()) as f32;
-            std::sync::Arc::get_mut(&mut out.data).unwrap()[0] =
+            std::rc::Rc::get_mut(&mut out.data).unwrap()[0] =
                 crate::dtypes::AMP(crate::dtypes::f16::from_f32(tmp * scale));
         } else {
             let num_elems_reduced = <Src as HasAxes<Ax>>::size(&inp.shape);
@@ -89,7 +89,7 @@ impl<E: Dtype + NotMixedPrecision, A: Allocator + Clone> super::SumKernel<E> for
             for v in inp.buf_iter() {
                 tmp += *v;
             }
-            std::sync::Arc::get_mut(&mut out.data).unwrap()[0] = tmp * scale;
+            std::rc::Rc::get_mut(&mut out.data).unwrap()[0] = tmp * scale;
         } else {
             let num_elems_reduced = <Src as HasAxes<Ax>>::size(&inp.shape);
             let inp_buf = inp.data.as_ref();

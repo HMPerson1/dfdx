@@ -3,7 +3,7 @@ use crate::shapes::{Dtype, Shape};
 use crate::tensor::{cpu::*, Error, Tensor, ZerosTensor};
 use crate::tensor_ops::matmul::cpu_kernel::MatMulImpl;
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use super::{ConvTrans2DKernel, ConvTrans2DOp};
 
@@ -220,7 +220,7 @@ where
             _ => unreachable!(),
         };
         let lhs = lhs.data.as_ref();
-        let out = Arc::make_mut(&mut out.data);
+        let out = Rc::make_mut(&mut out.data);
         for i_batch in 0..op.batch {
             self.convtrans2d_forward(
                 &op,

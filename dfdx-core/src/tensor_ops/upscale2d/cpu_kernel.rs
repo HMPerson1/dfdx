@@ -2,7 +2,7 @@ use crate::shapes::*;
 use crate::tensor::{Cpu, Error, Tensor};
 
 use std::alloc::Allocator;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use num_traits::Float;
 
@@ -32,7 +32,7 @@ impl<E: Float + Unit + std::ops::AddAssign + std::ops::DivAssign, A: Allocator +
         let x_ratio = (op.w_in as f32) / (op.w_out as f32);
 
         let buf = inp.data.as_ref();
-        let out_buf = Arc::make_mut(&mut out.data);
+        let out_buf = Rc::make_mut(&mut out.data);
         for b in 0..op.batch {
             for c in 0..op.chan {
                 for y_out in 0..op.h_out {
@@ -96,7 +96,7 @@ impl<E: Float + Dtype, A: Allocator + Clone> super::Upscale2DKernel<E, Bilinear>
         let x_ratio = ((op.w_in - 1) as f32) / ((op.w_out - 1) as f32);
 
         let buf = inp.data.as_ref();
-        let out_buf = Arc::make_mut(&mut out.data);
+        let out_buf = Rc::make_mut(&mut out.data);
         for b in 0..op.batch {
             for c in 0..op.chan {
                 for y_out in 0..op.h_out {

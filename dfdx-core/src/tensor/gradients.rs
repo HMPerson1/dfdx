@@ -308,16 +308,16 @@ impl<'a, E, D: Storage<E>> Merge<OwnedTape<'a, E, D>> for OwnedTape<'a, E, D> {
 }
 
 #[cfg(feature = "std")]
-impl<E, D: Storage<E>> Merge<NoneTape> for std::sync::Arc<std::sync::Mutex<OwnedTape<E, D>>> {
+impl<E, D: Storage<E>> Merge<NoneTape> for std::rc::Rc<std::sync::Mutex<OwnedTape<E, D>>> {
     fn merge(self, _: NoneTape) -> Self {
         self
     }
 }
 
 #[cfg(feature = "std")]
-impl<E, D: Storage<E>> Merge<Self> for std::sync::Arc<std::sync::Mutex<OwnedTape<E, D>>> {
+impl<E, D: Storage<E>> Merge<Self> for std::rc::Rc<std::sync::Mutex<OwnedTape<E, D>>> {
     fn merge(self, other: Self) -> Self {
-        if !std::sync::Arc::ptr_eq(&self, &other) {
+        if !std::rc::Rc::ptr_eq(&self, &other) {
             let mut lhs = self.lock().unwrap();
             let mut rhs = other.lock().unwrap();
             lhs.gradients
@@ -336,7 +336,7 @@ impl<E, D: Storage<E>> Merge<Self> for std::sync::Arc<std::sync::Mutex<OwnedTape
 }
 
 #[cfg(feature = "std")]
-impl<E, D: Storage<E>> Tape<E, D> for std::sync::Arc<std::sync::Mutex<OwnedTape<E, D>>> {
+impl<E, D: Storage<E>> Tape<E, D> for std::rc::Rc<std::sync::Mutex<OwnedTape<E, D>>> {
     const OWNS_TAPE: bool = true;
     fn add_backward_op<F>(&mut self, operation: F)
     where

@@ -1,4 +1,4 @@
-use std::{alloc::Allocator, sync::Arc};
+use std::{alloc::Allocator, rc::Rc};
 
 use crate::{
     shapes::{Dtype, Shape},
@@ -16,7 +16,7 @@ impl<E: Dtype, Al: Allocator + Clone> super::ConcatKernel<E> for Cpu<Al> {
     {
         let shape = a.shape.concat_shape(&b.shape);
         let mut data = self.try_alloc_elem(shape.num_elements(), E::default())?;
-        let data_mut = Arc::get_mut(&mut data).unwrap();
+        let data_mut = Rc::get_mut(&mut data).unwrap();
         let mut i = 0;
         if a.strides == a.shape.strides() {
             let a: &[E] = a.data.as_ref();

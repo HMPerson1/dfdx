@@ -3,7 +3,7 @@ use crate::{
     tensor::{unique_id, Cpu, Error, Tensor},
 };
 
-use std::{alloc::Allocator, sync::Arc, vec::Vec};
+use std::{alloc::Allocator, rc::Rc, vec::Vec};
 
 impl<E: Dtype, A: Allocator + Clone> super::StackKernel<E> for Cpu<A> {
     fn forward<S: Shape, Num: Dim>(
@@ -32,7 +32,7 @@ impl<E: Dtype, A: Allocator + Clone> super::StackKernel<E> for Cpu<A> {
 
         // copy the data
         let mut data = self.try_alloc_zeros(inp.len() * inp[0].data.len())?;
-        let data_mut = Arc::get_mut(&mut data).unwrap();
+        let data_mut = Rc::get_mut(&mut data).unwrap();
         let mut i = 0;
         for item in inp {
             let buf: &[E] = item.data.as_ref();

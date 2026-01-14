@@ -4,7 +4,7 @@ use crate::shapes::*;
 use crate::tensor::{Cpu, Error, Tensor, ZerosTensor};
 
 use std::alloc::Allocator;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[allow(unused)]
 #[allow(clippy::too_many_arguments)]
@@ -248,7 +248,7 @@ where
             lhs.strides,
             rhs.data.as_ptr(),
             rhs.strides,
-            Arc::get_mut(&mut out.data).unwrap().as_mut_ptr(),
+            Rc::get_mut(&mut out.data).unwrap().as_mut_ptr(),
             out.strides,
         );
         Ok(out)
@@ -300,7 +300,7 @@ where
         let (batch, m, k) = lhs.shape;
         let n = rhs.shape.1;
         let mut out = self.try_zeros_like(&(batch, m, n))?;
-        let cp = Arc::get_mut(&mut out.data).unwrap();
+        let cp = Rc::get_mut(&mut out.data).unwrap();
         for i in 0..batch.size() {
             Self::matmul(
                 (m, k, n),
@@ -366,7 +366,7 @@ where
         let mut out = self.try_zeros_like(&(b, m, n))?;
         let ap = lhs.data.as_ref();
         let bp = rhs.data.as_ref();
-        let cp = Arc::get_mut(&mut out.data).unwrap();
+        let cp = Rc::get_mut(&mut out.data).unwrap();
         for i in 0..b.size() {
             Self::matmul(
                 (m, k, n),
@@ -430,7 +430,7 @@ where
         let (b, s, m, k) = lhs.shape;
         let n = rhs.shape.3;
         let mut out = self.try_zeros_like(&(b, s, m, n))?;
-        let cp = Arc::get_mut(&mut out.data).unwrap();
+        let cp = Rc::get_mut(&mut out.data).unwrap();
         for i in 0..b.size() {
             for j in 0..s.size() {
                 Self::matmul(

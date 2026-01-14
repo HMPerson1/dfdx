@@ -25,7 +25,7 @@ impl<E: Dtype, Al: Allocator + Clone> super::ConcatAlongKernel<E> for Cpu<Al> {
 
         let mut i = 0;
         let n = c.data.len();
-        let buf = std::sync::Arc::get_mut(&mut c.data).unwrap();
+        let buf = std::rc::Rc::get_mut(&mut c.data).unwrap();
         while i < n {
             for _ in 0..a_n {
                 buf[i] = a.data[a_idx.next().unwrap()];

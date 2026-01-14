@@ -7,7 +7,7 @@ use crate::{
     tensor::{Cuda, Error, Tensor, Tensorlike},
 };
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 trait HasCudnnKernel<E> {}
 #[cfg(feature = "f16")]
@@ -81,7 +81,7 @@ where
                 (E::ONE, Default::default()),
                 lhs.data.as_ref(),
                 rhs.data.as_ref(),
-                Arc::get_mut(&mut out.data).unwrap(),
+                Rc::get_mut(&mut out.data).unwrap(),
             )?;
         }
 

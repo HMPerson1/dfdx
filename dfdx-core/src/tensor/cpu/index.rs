@@ -2,7 +2,7 @@ use crate::{
     shapes::{Shape, Unit},
     tensor::{Cpu, Tensor},
 };
-use std::{alloc::Allocator, sync::Arc};
+use std::{alloc::Allocator, rc::Rc};
 
 pub(crate) fn index_to_i<S: Shape>(shape: &S, strides: &S::Concrete, index: S::Concrete) -> usize {
     let sizes = shape.concrete();
@@ -27,7 +27,7 @@ impl<S: Shape, E: Unit, T, A: Allocator + Clone> std::ops::IndexMut<S::Concrete>
     #[inline(always)]
     fn index_mut(&mut self, index: S::Concrete) -> &mut Self::Output {
         let i = index_to_i(&self.shape, &self.strides, index);
-        let data = Arc::make_mut(&mut self.data);
+        let data = Rc::make_mut(&mut self.data);
         &mut data[i]
     }
 }

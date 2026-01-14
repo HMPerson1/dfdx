@@ -4,7 +4,7 @@ use crate::tensor_ops::matmul::cpu_kernel::MatMulImpl;
 
 use super::{Conv1DKernel, Conv1DOp};
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 impl Conv1DOp {
     #[inline(always)]
@@ -170,7 +170,7 @@ where
         };
         let lhs = lhs.data.as_ref();
         let rhs = rhs.data.as_ref();
-        let out = Arc::make_mut(&mut out.data);
+        let out = Rc::make_mut(&mut out.data);
         for i_batch in 0..op.batch {
             self.fwd_conv1d(
                 &op,

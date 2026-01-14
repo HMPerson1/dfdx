@@ -1,7 +1,7 @@
 use crate::shapes::{Shape, Unit};
 use crate::tensor::{cpu::LendingIterator, storage_traits::*, Error, Tensor};
 use std::alloc::{Allocator, Global};
-use std::sync::Arc;
+use std::rc::Rc;
 use std::vec::Vec;
 
 /// A device that stores data on the heap.
@@ -27,7 +27,7 @@ impl Default for Cpu {
 }
 
 impl<E: Unit, A: Allocator + Clone> Storage<E> for Cpu<A> {
-    type SharedVec = Arc<[E], A>;
+    type SharedVec = Rc<[E], A>;
     type OwnedVec = Vec<E, A>;
     type Allocator = A;
 
@@ -35,7 +35,7 @@ impl<E: Unit, A: Allocator + Clone> Storage<E> for Cpu<A> {
         Ok(std::vec::from_elem_in(E::default(), len, self.alloc.clone()))
     }
     
-    fn grad_to_tensor(&self, v: &Self::OwnedVec) -> Arc<[E], A> {
+    fn grad_to_tensor(&self, v: &Self::OwnedVec) -> Rc<[E], A> {
         self.try_alloc_copy(v).unwrap()
     }
 

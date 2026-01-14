@@ -1,6 +1,6 @@
 use crate::{shapes::*, tensor::*};
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use num_traits::{Float, FromPrimitive};
 
@@ -72,7 +72,7 @@ impl<E: Float + Dtype> super::Pool2DKernel<E> for Cpu {
         let ostr = make_4d::<O>(out.strides);
 
         let buf = inp.data.as_ref();
-        let out_buf = Arc::make_mut(&mut out.data);
+        let out_buf = Rc::make_mut(&mut out.data);
         for b in 0..op.batch {
             for c in 0..op.chan {
                 for oh in 0..op.h_out {

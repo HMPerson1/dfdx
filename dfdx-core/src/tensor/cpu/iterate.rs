@@ -127,7 +127,7 @@ impl<S: Shape, E: Unit, T, A: Allocator + Clone> Tensor<S, E, Cpu<A>, T> {
 
     #[inline]
     pub(crate) fn buf_iter_mut(&mut self) -> std::slice::IterMut<'_, E> {
-        std::sync::Arc::make_mut(&mut self.data).iter_mut()
+        std::rc::Rc::make_mut(&mut self.data).iter_mut()
     }
 
     #[inline]
@@ -141,7 +141,7 @@ impl<S: Shape, E: Unit, T, A: Allocator + Clone> Tensor<S, E, Cpu<A>, T> {
     #[inline]
     pub(crate) fn iter_mut(&mut self) -> StridedMutIter<'_, S, E> {
         StridedMutIter {
-            data: &mut std::sync::Arc::make_mut(&mut self.data)[..],
+            data: &mut std::rc::Rc::make_mut(&mut self.data)[..],
             index: NdIndex::new(self.shape, self.strides),
         }
     }
@@ -157,7 +157,7 @@ impl<S: Shape, E: Unit, T, A: Allocator + Clone> Tensor<S, E, Cpu<A>, T> {
     #[inline]
     pub(crate) fn iter_mut_with_index(&mut self) -> StridedMutIndexIter<'_, S, E> {
         StridedMutIndexIter {
-            data: &mut std::sync::Arc::make_mut(&mut self.data)[..],
+            data: &mut std::rc::Rc::make_mut(&mut self.data)[..],
             index: NdIndex::new(self.shape, self.strides),
         }
     }

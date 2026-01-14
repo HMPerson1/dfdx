@@ -3,7 +3,7 @@ use crate::{
     tensor::{cpu::NdIndex, *},
 };
 
-use std::{alloc::Allocator, sync::Arc};
+use std::{alloc::Allocator, rc::Rc};
 
 impl<E: Dtype, A: Allocator + Clone> super::RollKernel<E> for Cpu<A> {
     fn forward<S: Shape>(
@@ -14,7 +14,7 @@ impl<E: Dtype, A: Allocator + Clone> super::RollKernel<E> for Cpu<A> {
         let dims = inp.shape.concrete();
         let strides = inp.shape.strides();
         let mut data = self.try_alloc_zeros::<E>(inp.shape.num_elements())?;
-        let data_mut = Arc::get_mut(&mut data).unwrap();
+        let data_mut = Rc::get_mut(&mut data).unwrap();
         let mut idx = NdIndex::new(inp.shape, inp.strides);
         while let Some((old_i, mut idx)) = idx.next_with_idx() {
             idx[op.axis] = (idx[op.axis] + op.amount) % dims[op.axis];

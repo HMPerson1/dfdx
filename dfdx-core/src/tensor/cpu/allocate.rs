@@ -9,12 +9,12 @@ use super::{Cpu, LendingIterator};
 
 #[cfg(test)]
 use rand::{distributions::Distribution, Rng};
-use std::{alloc::Allocator, mem, slice, sync::Arc};
+use std::{alloc::Allocator, mem, slice, rc::Rc};
 
 impl<A: Allocator + Clone> Cpu<A> {
     #[inline]
-    pub(crate) fn try_alloc_zeros<E: Unit>(&self, numel: usize) -> Result<Arc<[E], A>, Error> {
-        let data = Arc::new_zeroed_slice_in(numel, self.alloc.clone());
+    pub(crate) fn try_alloc_zeros<E: Unit>(&self, numel: usize) -> Result<Rc<[E], A>, Error> {
+        let data = Rc::new_zeroed_slice_in(numel, self.alloc.clone());
         // SAFETY: E: SafeZeros
         Ok(unsafe { data.assume_init() })
     }
@@ -24,21 +24,21 @@ impl<A: Allocator + Clone> Cpu<A> {
         &self,
         numel: usize,
         elem: E,
-    ) -> Result<Arc<[E], A>, Error> {
-        let mut data = Arc::new_uninit_slice_in(numel, self.alloc.clone());
-        for p in Arc::get_mut(&mut data).unwrap() {
+    ) -> Result<Rc<[E], A>, Error> {
+        let mut data = Rc::new_uninit_slice_in(numel, self.alloc.clone());
+        for p in Rc::get_mut(&mut data).unwrap() {
             p.write(elem);
         }
         // SAFETY: each element of the slice has been written to
         Ok(unsafe { data.assume_init() })
     }
 
-    pub(crate) fn try_alloc_copy<E: Unit>(&self, src: &[E]) -> Result<Arc<[E], A>, Error> {
+    pub(crate) fn try_alloc_copy<E: Unit>(&self, src: &[E]) -> Result<Rc<[E], A>, Error> {
         let len = src.len();
-        let mut data = Arc::new_uninit_slice_in(len, self.alloc.clone());
+        let mut data = Rc::new_uninit_slice_in(len, self.alloc.clone());
         // SAFETY: casting to `MaybeUninit` is always safe
         let src = unsafe { slice::from_raw_parts(src.as_ptr() as *const mem::MaybeUninit<E>, len) };
-        Arc::get_mut(&mut data).unwrap().copy_from_slice(src);
+        Rc::get_mut(&mut data).unwrap().copy_from_slice(src);
         // SAFETY: copy_from_slice wrote to each element
         Ok(unsafe { data.assume_init() })
     }
@@ -94,7 +94,7 @@ impl<E: Unit, A: Allocator + Clone> TriangleTensor<E> for Cpu<A> {
         let strides = shape.strides();
         let mut data = self.try_alloc_elem::<E>(shape.num_elements(), val)?;
         let offset = diagonal.into().unwrap_or(0);
-        triangle_mask(Arc::get_mut(&mut data).unwrap(), &shape, true, offset);
+        triangle_mask(Rc::get_mut(&mut data).unwrap(), &shape, true, offset);
         Ok(Tensor {
             id: unique_id(),
             data,
@@ -115,7 +115,7 @@ impl<E: Unit, A: Allocator + Clone> TriangleTensor<E> for Cpu<A> {
         let strides = shape.strides();
         let mut data = self.try_alloc_elem::<E>(shape.num_elements(), val)?;
         let offset = diagonal.into().unwrap_or(0);
-        triangle_mask(Arc::get_mut(&mut data).unwrap(), &shape, false, offset);
+        triangle_mask(Rc::get_mut(&mut data).unwrap(), &shape, false, offset);
         Ok(Tensor {
             id: unique_id(),
             data,
@@ -149,7 +149,7 @@ impl<E: Unit, A: Allocator + Clone> SampleTensor<E> for Cpu<A> {
         let mut tensor = self.try_zeros_like(src)?;
         {
             let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::from_entropy();
-            for v in Arc::get_mut(&mut tensor.data).unwrap().iter_mut() {
+            for v in Rc::get_mut(&mut tensor.data).unwrap().iter_mut() {
                 *v = rng.sample(&distr);
             }
         }
@@ -172,7 +172,7 @@ impl<E: Unit, A: Allocator + Clone> SampleTensor<E> for Cpu<A> {
 
 impl<E: Unit, A: Allocator + Clone> CopySlice<E> for Cpu<A> {
     fn copy_from<S: Shape, T>(dst: &mut Tensor<S, E, Self, T>, src: &[E]) {
-        std::sync::Arc::make_mut(&mut dst.data).copy_from_slice(src);
+        std::rc::Rc::make_mut(&mut dst.data).copy_from_slice(src);
     }
     fn copy_into<S: Shape, T>(src: &Tensor<S, E, Self, T>, dst: &mut [E]) {
         dst.copy_from_slice(src.data.as_ref());
