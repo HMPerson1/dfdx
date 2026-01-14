@@ -9,7 +9,7 @@ use super::{Cpu, LendingIterator};
 
 #[cfg(test)]
 use rand::{distributions::Distribution, Rng};
-use std::{alloc::Allocator, mem, slice, sync::Arc, vec::Vec};
+use std::{alloc::Allocator, mem, slice, sync::Arc};
 
 impl<A: Allocator + Clone> Cpu<A> {
     #[inline]
@@ -182,7 +182,7 @@ impl<E: Unit, A: Allocator + Clone> CopySlice<E> for Cpu<A> {
 impl<E: Unit, A: Allocator + Clone> TensorFromVec<E> for Cpu<A> {
     fn try_tensor_from_vec<S: Shape>(
         &self,
-        src: Vec<E>,
+        src: &[E],
         shape: S,
     ) -> Result<Tensor<S, E, Self>, Error> {
         let num_elements = shape.num_elements();
@@ -192,7 +192,7 @@ impl<E: Unit, A: Allocator + Clone> TensorFromVec<E> for Cpu<A> {
         } else {
             Ok(Tensor {
                 id: unique_id(),
-                data: self.try_alloc_copy(&src)?,
+                data: self.try_alloc_copy(src)?,
                 shape,
                 strides: shape.strides(),
                 device: self.clone(),

@@ -55,7 +55,7 @@ mod tests {
     fn test_to_dtype_unsigned() {
         let dev: TestDevice = Default::default();
         let a = dev.tensor_from_vec(
-            (0..128).map(|x| x as f32).collect(),
+            &(0..128).map(|x| x as f32).collect::<Vec<_>>(),
             Rank1::<128>::default(),
         );
         let b = a.clone().to_dtype::<u8>().to_dtype::<f32>();
@@ -78,7 +78,7 @@ mod tests {
     fn test_to_dtype_signed() {
         let dev: TestDevice = Default::default();
         let a = dev.tensor_from_vec(
-            (0..128).map(|x| x as f32).collect(),
+            &(0..128).map(|x| x as f32).collect::<Vec<_>>(),
             Rank1::<128>::default(),
         );
         let b = a.clone().to_dtype::<i8>().to_dtype::<f32>();
@@ -101,7 +101,7 @@ mod tests {
     fn test_to_dtype_other() {
         let dev: TestDevice = Default::default();
         let a = dev.tensor_from_vec(
-            (0..128).map(|x| x as f32).collect(),
+            &(0..128).map(|x| x as f32).collect::<Vec<_>>(),
             Rank1::<128>::default(),
         );
         let b = a.clone().to_dtype::<f64>().to_dtype::<f32>();

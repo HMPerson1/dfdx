@@ -448,13 +448,13 @@ impl<S: Shape, E, D: Storage<E>, T> Tensor<S, E, D, T> {
 
 /// Construct tensors from rust vectors. This trait is only used to implement TensorFrom.
 pub trait TensorFromVec<E>: Storage<E> {
-    fn tensor_from_vec<S: Shape>(&self, src: Vec<E>, shape: S) -> Tensor<S, E, Self> {
+    fn tensor_from_vec<S: Shape>(&self, src: &[E], shape: S) -> Tensor<S, E, Self> {
         self.try_tensor_from_vec::<S>(src, shape).unwrap()
     }
 
     fn try_tensor_from_vec<S: Shape>(
         &self,
-        src: Vec<E>,
+        src: &[E],
         shape: S,
     ) -> Result<Tensor<S, E, Self>, Error>;
 }
@@ -471,7 +471,7 @@ impl<S: Shape, E, D: Storage<E>, T> Tensor<S, E, D, T> {
         device: &Dst,
     ) -> Result<Tensor<S, E, Dst>, Error> {
         let buf = self.as_vec();
-        device.try_tensor_from_vec(buf, self.shape)
+        device.try_tensor_from_vec(&buf, self.shape)
     }
 }
 
@@ -496,7 +496,7 @@ pub trait TensorFrom<Src, S: Shape, E>: Storage<E> {
 
 impl<E, D: TensorFromVec<E>> TensorFrom<E, Rank0, E> for D {
     fn try_tensor(&self, src: E) -> Result<Tensor<Rank0, E, Self>, Error> {
-        self.try_tensor_from_vec(vec![src], ())
+        self.try_tensor_from_vec(&[src], ())
     }
 }
 
@@ -508,7 +508,7 @@ impl<E: Copy, const M: usize, D: TensorFromVec<E>> TensorFrom<[E; M], Rank1<M>, 
 
 impl<E: Copy, const M: usize, D: TensorFromVec<E>> TensorFrom<&[E; M], Rank1<M>, E> for D {
     fn try_tensor(&self, src: &[E; M]) -> Result<Tensor<Rank1<M>, E, Self>, Error> {
-        self.try_tensor_from_vec(src.to_vec(), (Const::<M>,))
+        self.try_tensor_from_vec(&*src, (Const::<M>,))
     }
 }
 
@@ -518,7 +518,7 @@ impl<E: Copy, const M: usize, const N: usize, D: TensorFromVec<E>>
     fn try_tensor(&self, src: [[E; N]; M]) -> Result<Tensor<Rank2<M, N>, E, Self>, Error> {
         let vec: Vec<E> = src.iter().flat_map(|v| v.iter().copied()).collect();
 
-        self.try_tensor_from_vec(vec, (Const::<M>, Const::<N>))
+        self.try_tensor_from_vec(&vec, (Const::<M>, Const::<N>))
     }
 }
 
@@ -532,7 +532,7 @@ impl<E: Copy, const M: usize, const N: usize, const O: usize, D: TensorFromVec<E
             .flat_map(|v| v.iter().copied())
             .collect();
 
-        self.try_tensor_from_vec(vec, (Const::<M>, Const::<N>, Const::<O>))
+        self.try_tensor_from_vec(&vec, (Const::<M>, Const::<N>, Const::<O>))
     }
 }
 
@@ -556,18 +556,18 @@ impl<
             .flat_map(|v| v.iter().copied())
             .collect();
 
-        self.try_tensor_from_vec(vec, (Const::<M>, Const::<N>, Const::<O>, Const::<P>))
+        self.try_tensor_from_vec(&vec, (Const::<M>, Const::<N>, Const::<O>, Const::<P>))
     }
 }
 
-impl<E, S: ConstShape, D: TensorFromVec<E>> TensorFrom<Vec<E>, S, E> for D {
-    fn try_tensor(&self, src: Vec<E>) -> Result<Tensor<S, E, Self>, Error> {
-        self.try_tensor_from_vec(src, S::default())
+impl<E, S: ConstShape, D: TensorFromVec<E>> TensorFrom<&[E], S, E> for D {
+    fn try_tensor(&self, src: &[E]) -> Result<Tensor<S, E, Self>, Error> {
+        self.try_tensor_from_vec(&src, S::default())
     }
 }
 
-impl<E, S: Shape, D: TensorFromVec<E>> TensorFrom<(Vec<E>, S), S, E> for D {
-    fn try_tensor(&self, (src, shape): (Vec<E>, S)) -> Result<Tensor<S, E, Self>, Error> {
+impl<E, S: Shape, D: TensorFromVec<E>> TensorFrom<(&[E], S), S, E> for D {
+    fn try_tensor(&self, (src, shape): (&[E], S)) -> Result<Tensor<S, E, Self>, Error> {
         self.try_tensor_from_vec(src, shape)
     }
 }
