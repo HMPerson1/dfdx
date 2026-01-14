@@ -86,11 +86,8 @@ where
         let rhs_ghost = rhs.ghost();
         let out_ghost = out.ghost();
         tape.add_backward_op(move |grads| {
-            grads.try_alloc_for(&lhs_ghost)?;
-            grads.try_alloc_for(&rhs_ghost)?;
-            grads.try_alloc_for(&out_ghost)?;
             let (lhs_grad, rhs_grad, out_grad) =
-                grads.muts_and_ref(&lhs_ghost, &rhs_ghost, &out_ghost);
+                grads.muts_and_ref(&lhs_ghost, &rhs_ghost, &out_ghost)?;
             lhs.device
                 .backward(ax, &lhs_ghost, lhs_grad, &rhs_ghost, rhs_grad, out_grad)
         });

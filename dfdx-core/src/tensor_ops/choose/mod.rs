@@ -82,11 +82,8 @@ impl<'a,
         let out_ghost = out.ghost();
         let mut tape = tape.merge(rhs_tape);
         tape.add_backward_op(move |grads| {
-            grads.try_alloc_for(&lhs_ghost)?;
-            grads.try_alloc_for(&rhs_ghost)?;
-            grads.try_alloc_for(&out_ghost)?;
             let (grad_lhs, grad_rhs, grad_out) =
-                grads.muts_and_ref(&lhs_ghost, &rhs_ghost, &out_ghost);
+                grads.muts_and_ref(&lhs_ghost, &rhs_ghost, &out_ghost)?;
             lhs.device
                 .backward(&self, &lhs, grad_lhs, &rhs, grad_rhs, grad_out)
         });

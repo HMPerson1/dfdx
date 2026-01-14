@@ -111,9 +111,7 @@ impl<'a, Src: Shape, E: Dtype, D: RemoveDimKernel<E> + 'a, T: Tape<'a, E, D>> Se
         let out_ghost = out.ghost();
         let out_clone = out.clone();
         tape.add_backward_op(move |grads| {
-            grads.try_alloc_for(&inp_ghost)?;
-            grads.try_alloc_for(&out_ghost)?;
-            let (grad_inp, grad_out) = grads.mut_and_ref(&inp_ghost, &out_ghost);
+            let (grad_inp, grad_out) = grads.mut_and_ref(&inp_ghost, &out_ghost)?;
             inp.device
                 .backward(&inp, grad_inp, &idx, &out_clone, grad_out)
         });
@@ -184,9 +182,7 @@ impl<'a, Src: Shape, E: Dtype, D: ReplaceDimKernel<E> + 'a, T: Tape<'a, E, D>> G
         let out_ghost = out.ghost();
         let out_clone = out.clone();
         tape.add_backward_op(move |grads| {
-            grads.try_alloc_for(&inp_ghost)?;
-            grads.try_alloc_for(&out_ghost)?;
-            let (grad_inp, grad_out) = grads.mut_and_ref(&inp_ghost, &out_ghost);
+            let (grad_inp, grad_out) = grads.mut_and_ref(&inp_ghost, &out_ghost)?;
             inp.device
                 .backward(&inp, grad_inp, &idx, &out_clone, grad_out)
         });

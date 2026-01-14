@@ -82,9 +82,7 @@ impl<'a, S: Shape, E: Dtype, D: RollKernel<E> + 'a, T: Tape<'a, E, D>> Roll for 
         let inp_ghost = t.ghost();
         let out_ghost = out.ghost();
         tape.add_backward_op(move |grads| {
-            grads.try_alloc_for(&inp_ghost)?;
-            grads.try_alloc_for(&out_ghost)?;
-            let (grad_inp, grad_out) = grads.mut_and_ref(&inp_ghost, &out_ghost);
+            let (grad_inp, grad_out) = grads.mut_and_ref(&inp_ghost, &out_ghost)?;
             t.device.backward(op, &t, grad_inp, grad_out)
         });
         Ok(out.put_tape(tape))

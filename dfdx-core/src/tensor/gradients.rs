@@ -2,6 +2,7 @@
 #![allow(clippy::type_complexity)]
 
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::ptr;
 use std::{boxed::Box, vec::Vec};
 
 use super::tensorlike::Tensorlike;
@@ -38,15 +39,6 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 }
 
 impl<E, D: Storage<E>> Gradients<E, D> {
-    /// Retrieves mutable gradient for `t`, allocating one if it isn't present.
-    pub fn get_or_alloc_mut<S: Shape>(
-        &mut self,
-        t: &impl Tensorlike<S, E, D>,
-    ) -> Result<&mut D::OwnedVec, Error> {
-        self.try_alloc_for(t)?;
-        Ok(self.get_mut(t))
-    }
-
     /// Inserts a gradient for `t`
     pub fn try_alloc_for<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> Result<(), Error> {
         if let std::collections::hash_map::Entry::Vacant(e) = self.gradient_by_id.entry(t.id()) {
@@ -81,18 +73,26 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         self.gradient_by_id.get(&t.id)
     }
 
-    /// Returns a mutable reference to the data associated with `t`.
-    ///
-    /// **Panics** if data associated with `t` is not found. This indicates an unrecoverable bug.
-    pub(crate) fn get_mut<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> &mut D::OwnedVec {
-        self.gradient_by_id.get_mut(&t.id()).unwrap()
+    /// Retrieves mutable gradient for `t`, allocating one if it isn't present.
+    pub(crate) fn get_mut<S: Shape>(
+        &mut self,
+        t: &impl Tensorlike<S, E, D>,
+    ) -> Result<&mut D::OwnedVec, Error> {
+        use std::collections::hash_map::Entry;
+        match self.gradient_by_id.entry(t.id()) {
+            Entry::Occupied(entry) => Ok(entry.into_mut()),
+            Entry::Vacant(entry) => Ok(entry.insert(t.try_alloc_grad()?)),
+        }
     }
 
     /// Returns an immutable reference to the data associated with `t`.
     ///
     /// **Panics** if data associated with `t` is not found. This indicates an unrecoverable bug.
-    pub(crate) fn get_ref<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> &D::OwnedVec {
-        self.gradient_by_id.get(&t.id()).unwrap()
+    pub(crate) fn get_ref<S: Shape>(
+        &mut self,
+        t: &impl Tensorlike<S, E, D>,
+    ) -> Result<&D::OwnedVec, Error> {
+        self.get_mut(t).map(|x| &*x)
     }
 
     /// Clones the gradient and transforms it into a tensor.
@@ -116,44 +116,47 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     /// `l` is the gradient to update, and `r` is the gradient to backprop.
     ///
     /// **Panics** if `l` and `r` have the same id.
-    pub(crate) fn mut_and_ref<L: Shape, R: Shape>(
-        &mut self,
+    pub(crate) fn mut_and_ref<'a, L: Shape, R: Shape>(
+        &'a mut self,
         l: &impl Tensorlike<L, E, D>,
         r: &impl Tensorlike<R, E, D>,
-    ) -> (&mut D::OwnedVec, &D::OwnedVec) {
-        assert_ne!(l.id(), r.id());
-        let l_ptr = self.get_mut(l) as *mut _;
-        let r_ptr = self.get_ref(r) as *const _;
+    ) -> Result<(&'a mut D::OwnedVec, &'a D::OwnedVec), Error> {
+        self.gradient_by_id.reserve(2);
+        let l_ptr = self.get_mut(l)? as *mut _;
+        let r_ptr = self.get_ref(r)? as *const _;
+        assert!(!ptr::eq(l_ptr, r_ptr));
         let l_ref = unsafe { &mut *l_ptr };
         let r_ref = unsafe { &*r_ptr };
-        (l_ref, r_ref)
+        Ok((l_ref, r_ref))
     }
 
     /// Borrows a triplet of gradients `(&mut L1, &mut L2, &R)`.
-    pub(crate) fn muts_and_ref<L1: Shape, L2: Shape, R: Shape>(
-        &mut self,
+    pub(crate) fn muts_and_ref<'a, L1: Shape, L2: Shape, R: Shape>(
+        &'a mut self,
         l1: &impl Tensorlike<L1, E, D>,
         l2: &impl Tensorlike<L2, E, D>,
         r: &impl Tensorlike<R, E, D>,
-    ) -> (&mut D::OwnedVec, &mut D::OwnedVec, &D::OwnedVec) {
-        assert_ne!(l1.id(), l2.id());
-        assert_ne!(l1.id(), r.id());
-        assert_ne!(l2.id(), r.id());
-        let l1_ptr = self.get_mut(l1) as *mut _;
-        let l2_ptr = self.get_mut(l2) as *mut _;
-        let r_ptr = self.get_ref(r) as *const _;
+    ) -> Result<(&'a mut D::OwnedVec, &'a mut D::OwnedVec, &'a D::OwnedVec), Error> {
+        self.gradient_by_id.reserve(3);
+        let l1_ptr = self.get_mut(l1)? as *mut _;
+        let l2_ptr = self.get_mut(l2)? as *mut _;
+        let r_ptr = self.get_ref(r)? as *const _;
+        assert!(!ptr::eq(l1_ptr, l2_ptr));
+        assert!(!ptr::eq(l1_ptr, r_ptr));
+        assert!(!ptr::eq(l2_ptr, r_ptr));
         let l1_ref = unsafe { &mut *l1_ptr };
         let l2_ref = unsafe { &mut *l2_ptr };
         let r_ref = unsafe { &*r_ptr };
-        (l1_ref, l2_ref, r_ref)
+        Ok((l1_ref, l2_ref, r_ref))
     }
 
     #[inline]
-    pub(crate) fn many_and_ref<L: Shape, R: Shape>(
-        &mut self,
+    pub(crate) fn many_and_ref<'a, L: Shape, R: Shape>(
+        &'a mut self,
         ls: &Vec<impl Tensorlike<L, E, D>>,
         r: &impl Tensorlike<R, E, D>,
-    ) -> (Vec<&mut D::OwnedVec>, &D::OwnedVec) {
+    ) -> Result<(Vec<&'a mut D::OwnedVec>, &'a D::OwnedVec), Error> {
+        self.gradient_by_id.reserve(ls.len() + 1);
         for i in 0..ls.len() {
             assert_ne!(ls[i].id(), r.id());
             for j in (i + 1)..ls.len() {
@@ -163,13 +166,13 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         let l_refs: Vec<&mut D::OwnedVec> = ls
             .iter()
             .map(|l| {
-                let l_ptr = self.get_mut(l) as *mut D::OwnedVec;
-                unsafe { &mut *l_ptr }
+                self.get_mut(l)
+                    .map(|l_ptr| unsafe { &mut *(l_ptr as *mut _) })
             })
-            .collect();
-        let r_ptr = self.get_ref(r) as *const _;
+            .collect::<Result<_, _>>()?;
+        let r_ptr = self.get_ref(r)? as *const _;
         let r_ref = unsafe { &*r_ptr };
-        (l_refs, r_ref)
+        Ok((l_refs, r_ref))
     }
 }
 
