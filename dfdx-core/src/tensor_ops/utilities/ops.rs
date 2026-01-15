@@ -134,7 +134,7 @@ pub(crate) fn try_binary_op<
 pub trait IsNeeded {
     type Output<T>;
     fn make<T>(f: impl FnOnce() -> T) -> Self::Output<T>;
-    fn fmap<T, U>(x: &Self::Output<T>, f: impl FnOnce(&T) -> &U) -> Self::Output<&U>;
+    fn fmap<T, U: ?Sized>(x: &Self::Output<T>, f: impl FnOnce(&T) -> &U) -> Self::Output<&U>;
 }
 pub struct Needed;
 // identity monad
@@ -144,7 +144,7 @@ impl IsNeeded for Needed {
         f()
     }
 
-    fn fmap<T, U>(x: &T, f: impl FnOnce(&T) -> &U) -> &U {
+    fn fmap<T, U: ?Sized>(x: &T, f: impl FnOnce(&T) -> &U) -> &U {
         f(x)
     }
 }
@@ -153,7 +153,7 @@ pub struct Ignored;
 impl IsNeeded for Ignored {
     type Output<T> = ();
     fn make<T>(_f: impl FnOnce() -> T) -> () {}
-    fn fmap<T, U>(_x: &(), _f: impl FnOnce(&T) -> &U) -> () {}
+    fn fmap<T, U: ?Sized>(_x: &(), _f: impl FnOnce(&T) -> &U) -> () {}
 }
 
 pub trait UnaryKernel2<Op, E: Dtype>: Storage<E> {

@@ -44,7 +44,7 @@ pub fn sub<'a, S: Shape, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R>(
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T>
 where
-    D: BinaryKernel<BinarySubKernelOp, E> + 'a,
+    D: BinaryKernel2<BinarySubKernelOp, E> + 'a,
 {
     lhs - rhs
 }
@@ -55,26 +55,26 @@ pub trait TrySub<Rhs = Self> {
     fn try_sub(self, rhs: Rhs) -> Result<Self::Output, Error>;
 }
 
-impl<'a, S: Shape, E: Dtype, D: BinaryKernel<BinarySubKernelOp, E> + 'a, LTape: Tape<'a, E, D>, R>
+impl<'a, S: Shape, E: Dtype, D: BinaryKernel2<BinarySubKernelOp, E> + 'a, LTape: Tape<'a, E, D>, R>
     TrySub<Tensor<S, E, D, R>> for Tensor<S, E, D, LTape>
 where
     LTape: Merge<R>,
 {
     type Output = Self;
     fn try_sub(self, rhs: Tensor<S, E, D, R>) -> Result<Self, Error> {
-        try_binary_op(BinarySubKernelOp, self, rhs)
+        try_binary_op2(BinarySubKernelOp, self, rhs)
     }
 }
 
 impl<'a, S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<'a, E, D>> TrySub<Rhs> for Tensor<S, E, D, T>
 where
-    D: UnaryKernel<ScalarSubKernelOp<E>, E> + 'a,
+    D: UnaryKernel2<ScalarSubKernelOp<E>, E> + 'a,
 {
     type Output = Self;
     fn try_sub(self, rhs: Rhs) -> Result<Self, Error> {
         let rhs: f64 = rhs.into();
         let scalar = E::from_f64(rhs).unwrap();
-        try_unary_op(ScalarSubKernelOp { scalar }, self)
+        try_unary_op2(ScalarSubKernelOp { scalar }, self)
     }
 }
 

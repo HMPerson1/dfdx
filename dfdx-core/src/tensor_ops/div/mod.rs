@@ -44,7 +44,7 @@ pub fn div<'a, S: Shape, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Default>(
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T>
 where
-    D: BinaryKernel<BinaryDivKernelOp, E> + 'a,
+    D: BinaryKernel2<BinaryDivKernelOp, E> + 'a,
 {
     lhs / rhs
 }
@@ -58,26 +58,26 @@ pub trait TryDiv<Rhs = Self> {
 impl<'a, S: Shape, E: Dtype, D, LhsTape: Tape<'a, E, D>, R> TryDiv<Tensor<S, E, D, R>>
     for Tensor<S, E, D, LhsTape>
 where
-    D: BinaryKernel<BinaryDivKernelOp, E> + 'a,
+    D: BinaryKernel2<BinaryDivKernelOp, E> + 'a,
     LhsTape: Merge<R>,
 {
     type Output = Self;
     /// See [div]
     fn try_div(self, rhs: Tensor<S, E, D, R>) -> Result<Self, Error> {
-        try_binary_op(BinaryDivKernelOp, self, rhs)
+        try_binary_op2(BinaryDivKernelOp, self, rhs)
     }
 }
 
 impl<'a, S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<'a, E, D>> TryDiv<Rhs> for Tensor<S, E, D, T>
 where
-    D: UnaryKernel<ScalarDivKernelOp<E>, E> + 'a,
+    D: UnaryKernel2<ScalarDivKernelOp<E>, E> + 'a,
 {
     type Output = Self;
     /// See [div]
     fn try_div(self, rhs: Rhs) -> Result<Self, Error> {
         let rhs: f64 = rhs.into();
         let scalar = E::from_f64(rhs).unwrap();
-        try_unary_op(ScalarDivKernelOp { scalar }, self)
+        try_unary_op2(ScalarDivKernelOp { scalar }, self)
     }
 }
 

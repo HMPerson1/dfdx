@@ -2,7 +2,7 @@ use std::{alloc::Allocator, borrow::Cow, hint, rc::Rc};
 
 use super::ops::{BinaryKernel, BinaryKernel2, IsNeeded, UnaryKernel, UnaryKernel2};
 use crate::{
-    shapes::{Dtype, HasShape, Shape},
+    shapes::{Dtype, Shape},
     tensor::{
         cpu::{Cpu, LendingIterator, NdIndex},
         unique_id, Error, Tensor, Tensorlike, ZerosTensor,
@@ -301,8 +301,11 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
                     Some(d) => d,
                     None => Rc::make_mut(&mut rhs.data),
                 };
+                let len = rhs.shape.num_elements();
+                assert_eq!(len, rhs_data.len());
                 rhs.id = unique_id();
                 if lhs_contig {
+                    assert_eq!(len, lhs.data.len());
                     for (r, l) in rhs_data.into_iter().zip(&lhs.data[..]) {
                         *r = op.f(l, r);
                     }
@@ -319,8 +322,11 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
                     Some(d) => d,
                     None => Rc::make_mut(&mut lhs.data),
                 };
+                let len = lhs.shape.num_elements();
+                assert_eq!(len, lhs_data.len());
                 lhs.id = unique_id();
                 if rhs_contig {
+                    assert_eq!(len, rhs.data.len());
                     for (l, r) in lhs_data.into_iter().zip(&rhs.data[..]) {
                         *l = op.f(l, r);
                     }
@@ -359,16 +365,23 @@ impl<E: Dtype, Op: BinaryDerivative2<E>, A: Allocator + Clone> BinaryKernel2<Op,
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
         grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
-        let lhs_idx = NdIndex::new(*lhs_ghost.shape(), lhs_ghost.strides());
-        let rhs_idx = NdIndex::new(*rhs_ghost.shape(), rhs_ghost.strides());
+        let lhs_data = Self::BackLhsNeeded::fmap(&lhs_data, |x| &x[..]);
+        let rhs_data = Self::BackRhsNeeded::fmap(&rhs_data, |x| &x[..]);
+        let out_data = Self::BackOutNeeded::fmap(&out, |x| &x.data[..]);
+
+        let lhs_idx = NdIndex::new(lhs_ghost.shape, lhs_ghost.strides);
+        let rhs_idx = NdIndex::new(rhs_ghost.shape, rhs_ghost.strides);
         // NOTE: we can use .buf_iter() here because we know the outcome of this op is
         // contiguous from forward
+        let len = lhs_ghost.shape.num_elements();
+        assert_eq!(len, grad_out.len());
+        Self::BackOutNeeded::fmap(&out_data, |x| &assert_eq!(len, x.len()));
         for (out_i, &go) in grad_out.iter().enumerate() {
             let lhs_i = lhs_idx.get_strided_index_slow(out_i);
             let rhs_i = rhs_idx.get_strided_index_slow(out_i);
             let l = Self::BackLhsNeeded::fmap(&lhs_data, |x| &x[lhs_i]);
             let r = Self::BackRhsNeeded::fmap(&rhs_data, |x| &x[rhs_i]);
-            let f = Self::BackOutNeeded::fmap(&out, |x| &x.data[out_i]);
+            let f = Self::BackOutNeeded::fmap(&out_data, |x| &x[out_i]);
             let (dfdx, dfdy) = op.df(l, r, f);
             grad_lhs[lhs_i] += dfdx * go;
             grad_rhs[rhs_i] += dfdy * go;

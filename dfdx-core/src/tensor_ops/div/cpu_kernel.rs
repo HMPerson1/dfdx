@@ -1,35 +1,33 @@
-use crate::tensor_ops::cpu_kernels::{BinaryDerivative, UnaryDerivative};
+use crate::{
+    prelude::{Ignored, Needed},
+    tensor_ops::cpu_kernels::{BinaryDerivative2, UnaryDerivative2},
+};
 use num_traits::Float;
 
-impl<F: Float> UnaryDerivative<F> for super::ScalarDivKernelOp<F> {
-    const DF_USES_FX: bool = false;
-    const HAS_CONST_DF: bool = true;
+impl<F: Float> UnaryDerivative2<F> for super::ScalarDivKernelOp<F> {
+    type BackInpNeeded = Ignored;
+    type BackOutNeeded = Ignored;
     #[inline(always)]
     fn f(&self, &x: &F) -> F {
         x / self.scalar
     }
     #[inline(always)]
-    fn df(&self, _: &F) -> F {
-        F::one() / self.scalar
-    }
-    #[inline(always)]
-    fn const_df(&self) -> F {
+    fn df(&self, _x: (), _f: ()) -> F {
         F::one() / self.scalar
     }
 }
 
-impl<F: Float> BinaryDerivative<F> for super::BinaryDivKernelOp {
-    const HAS_CONST_DF: bool = false;
+impl<F: Float> BinaryDerivative2<F> for super::BinaryDivKernelOp {
+    type BackLhsNeeded = Ignored;
+    type BackRhsNeeded = Needed;
+    type BackOutNeeded = Needed;
     #[inline(always)]
     fn f(&self, &x: &F, &y: &F) -> F {
         x / y
     }
     #[inline(always)]
-    fn dfdx(&self, _: &F, &y: &F) -> F {
-        y.recip()
-    }
-    #[inline(always)]
-    fn dfdy(&self, &x: &F, y: &F) -> F {
-        -x / y.powi(2)
+    fn df(&self, _x: (), &y: &F, &f: &F) -> (F, F) {
+        let frac_1_y = y.recip();
+        (frac_1_y, -f * frac_1_y)
     }
 }
