@@ -239,6 +239,9 @@ impl<F: num_traits::Zero> num_traits::Zero for AMP<F> {
         self.0.is_zero()
     }
 }
+impl<F: crate::dtypes::SumZero> crate::dtypes::SumZero for AMP<F> {
+    const SUM_ZERO: Self = AMP(F::SUM_ZERO);
+}
 impl<F: num_traits::One> num_traits::One for AMP<F> {
     fn one() -> Self {
         AMP(F::one())

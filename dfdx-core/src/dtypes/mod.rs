@@ -96,6 +96,7 @@ pub trait Dtype:
     + std::ops::DivAssign
     + num_traits::FromPrimitive
     + num_traits::ToPrimitive
+    + SumZero
 {
 }
 impl Dtype for f32 {}
@@ -138,3 +139,27 @@ impl NotMixedPrecision for u128 {}
 impl NotMixedPrecision for usize {}
 #[cfg(feature = "f16")]
 impl NotMixedPrecision for f16 {}
+
+pub trait SumZero {
+    const SUM_ZERO: Self;
+}
+
+macro_rules! add_ident_int {
+    ($($a:ty)*) => ($(
+        impl SumZero for $a {
+            const SUM_ZERO: Self = 0;
+        }
+    )*);
+}
+add_ident_int!(i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize);
+
+macro_rules! add_ident_float {
+    ($($a:ty)*) => ($(
+        impl SumZero for $a {
+            const SUM_ZERO: Self = -0.;
+        }
+    )*);
+}
+add_ident_float!(f32 f64);
+#[cfg(feature = "f16")]
+add_ident_float!(f16);

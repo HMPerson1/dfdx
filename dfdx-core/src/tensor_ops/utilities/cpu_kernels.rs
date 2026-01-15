@@ -255,10 +255,17 @@ impl<E: Dtype, Op: UnaryDerivative2<E>, A: Allocator + Clone> UnaryKernel2<Op, E
         out: <Self::BackOutNeeded as IsNeeded>::Output<Tensor<S, E, Self>>,
         grad_out: &Self::OwnedVec,
     ) -> Result<(), Error> {
+        let inp_data = Self::BackInpNeeded::fmap(&inp, |x| &x.data[..]);
+        let out_data = Self::BackOutNeeded::fmap(&out, |x| &x.data[..]);
+
+        let len = grad_inp.len();
+        assert_eq!(len, grad_out.len());
+        Self::BackInpNeeded::fmap(&inp_data, |x| &assert_eq!(len, x.len()));
+        Self::BackOutNeeded::fmap(&out_data, |x| &assert_eq!(len, x.len()));
         for (i, x) in grad_inp.iter_mut().enumerate() {
             *x += op.df(
-                Self::BackInpNeeded::fmap(&inp, |x| &x.data[i]),
-                Self::BackOutNeeded::fmap(&out, |x| &x.data[i]),
+                Self::BackInpNeeded::fmap(&inp_data, |x| &x[i]),
+                Self::BackOutNeeded::fmap(&out_data, |x| &x[i]),
             ) * grad_out[i];
         }
         Ok(())

@@ -116,6 +116,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     /// `l` is the gradient to update, and `r` is the gradient to backprop.
     ///
     /// **Panics** if `l` and `r` have the same id.
+    #[inline(never)]
     pub(crate) fn mut_and_ref<'a, L: Shape, R: Shape>(
         &'a mut self,
         l: &impl Tensorlike<L, E, D>,
@@ -131,6 +132,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     }
 
     /// Borrows a triplet of gradients `(&mut L1, &mut L2, &R)`.
+    #[inline(never)]
     pub(crate) fn muts_and_ref<'a, L1: Shape, L2: Shape, R: Shape>(
         &'a mut self,
         l1: &impl Tensorlike<L1, E, D>,

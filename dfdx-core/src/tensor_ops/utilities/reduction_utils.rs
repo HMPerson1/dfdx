@@ -34,12 +34,10 @@ pub(crate) fn index_for_reductions<S: Shape, Ax: Axes>(
         }
     }
     NdIndex {
-        indices: Default::default(),
+        inner: (0..shape.num_elements()),
         shape: new_shape,
         strides: new_strides,
-        next: Some(0),
-        contiguous: (new_shape == dims && new_strides == shape.strides())
-            .then(|| shape.num_elements()),
+        contiguous: new_shape == dims && new_strides == shape.strides(),
     }
 }
 
@@ -133,11 +131,10 @@ mod tests {
         assert_eq!(
             idx,
             NdIndex {
-                indices: [0, 0, 0],
+                inner: (0..24),
                 shape: [2, 3, 4],
                 strides: [12, 4, 1],
-                next: Some(0),
-                contiguous: Some(24),
+                contiguous: true,
             }
         );
 
@@ -145,11 +142,10 @@ mod tests {
         assert_eq!(
             idx,
             NdIndex {
-                indices: [0, 0, 0],
+                inner: (0..24),
                 shape: [2, 4, 3],
                 strides: [12, 1, 4],
-                next: Some(0),
-                contiguous: None,
+                contiguous: false,
             }
         );
 
@@ -157,11 +153,10 @@ mod tests {
         assert_eq!(
             idx,
             NdIndex {
-                indices: [0, 0, 0],
+                inner: (0..24),
                 shape: [3, 4, 2],
                 strides: [4, 1, 12],
-                next: Some(0),
-                contiguous: None,
+                contiguous: false,
             }
         );
     }
@@ -175,11 +170,10 @@ mod tests {
         assert_eq!(
             idx,
             NdIndex {
-                indices: [0, 0, 0],
+                inner: (0..24),
                 shape: [2, 3, 4],
                 strides: [12, 4, 1],
-                next: Some(0),
-                contiguous: Some(24),
+                contiguous: true,
             }
         );
 
@@ -187,11 +181,10 @@ mod tests {
         assert_eq!(
             idx,
             NdIndex {
-                indices: [0, 0, 0],
+                inner: (0..24),
                 shape: [3, 2, 4],
                 strides: [4, 12, 1],
-                next: Some(0),
-                contiguous: None,
+                contiguous: false,
             }
         );
     }

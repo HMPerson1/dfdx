@@ -1,109 +1,87 @@
 use super::{super::Tensor, Cpu};
 use crate::shapes::{Shape, Unit};
-use std::alloc::Allocator;
+use std::{alloc::Allocator, ops};
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct NdIndex<S: Shape> {
-    pub(crate) indices: S::Concrete,
+    pub(crate) inner: ops::Range<usize>,
     pub(crate) shape: S::Concrete,
     pub(crate) strides: S::Concrete,
-    pub(crate) next: Option<usize>,
-    pub(crate) contiguous: Option<usize>,
+    pub(crate) contiguous: bool,
 }
 
 impl<S: Shape> NdIndex<S> {
     #[inline]
     pub(crate) fn new(shape: S, strides: S::Concrete) -> Self {
         Self {
-            indices: Default::default(),
+            inner: ops::Range {
+                start: 0,
+                end: shape.num_elements(),
+            },
             shape: shape.concrete(),
             strides,
-            next: if shape.num_elements() > 0 {
-                Some(0)
-            } else {
-                None
-            },
-            contiguous: (strides == shape.strides()).then(|| shape.num_elements()),
+            contiguous: strides == shape.strides(),
         }
     }
 }
 
 impl<S: Shape> NdIndex<S> {
+    /// equivalent to `self.apply_strides(self.to_nd_index(i_contig))`
     #[inline]
     pub(crate) fn get_strided_index(&self, idx: usize) -> usize {
-        if self.contiguous.is_some() {
+        if self.contiguous {
             idx
         } else {
             self.get_strided_index_slow(idx)
         }
     }
-    pub(crate) fn get_strided_index_slow(&self, mut idx: usize) -> usize {
+
+    #[inline]
+    pub(crate) fn get_strided_index_slow(&self, mut i_contig: usize) -> usize {
         let mut out = 0;
 
-        // for (dim, stride) in shape.iter().zip(strides.iter()).rev() {
-        for i in 0..S::NUM_DIMS {
-            let dim = self.shape[S::NUM_DIMS - 1 - i];
-            let stride = self.strides[S::NUM_DIMS - 1 - i];
-            out += (idx % dim) * stride;
-            idx /= dim;
+        for ax in 0..S::NUM_DIMS {
+            let ax_size = self.shape[S::NUM_DIMS - 1 - ax];
+            let ax_stride = self.strides[S::NUM_DIMS - 1 - ax];
+            out += (i_contig % ax_size) * ax_stride;
+            i_contig /= ax_size;
         }
 
         out
     }
 
+    #[inline]
+    pub(crate) fn to_nd_index(&self, mut i_contig: usize) -> S::Concrete {
+        let mut ret = S::Concrete::default();
+
+        for ax in 0..S::NUM_DIMS {
+            let ax_size = self.shape[S::NUM_DIMS - 1 - ax];
+            ret[S::NUM_DIMS - 1 - ax] = i_contig % ax_size;
+            i_contig /= ax_size;
+        }
+
+        ret
+    }
+
+    #[inline]
+    pub(crate) fn apply_strides(&self, idx: S::Concrete) -> usize {
+        idx.into_iter()
+            .zip(self.strides)
+            .map(|(i, s)| i * s)
+            .sum()
+    }
+
     #[inline(always)]
     pub(crate) fn next(&mut self) -> Option<usize> {
-        match self.contiguous {
-            Some(numel) => match self.next.as_mut() {
-                Some(i) => {
-                    let idx = *i;
-                    let next = idx + 1;
-                    if next >= numel {
-                        self.next = None;
-                    } else {
-                        *i = next;
-                    }
-                    Some(idx)
-                }
-                None => None,
-            },
-            None => self.next_with_idx().map(|(i, _)| i),
-        }
+        self.inner.next().map(|i| self.get_strided_index(i))
     }
 
     #[inline(always)]
     pub(crate) fn next_with_idx(&mut self) -> Option<(usize, S::Concrete)> {
-        match (S::NUM_DIMS, self.next.as_mut()) {
-            (_, None) => None,
-            (0, Some(i)) => {
-                let idx = (*i, self.indices);
-                self.next = None;
-                Some(idx)
-            }
-            (_, Some(i)) => {
-                let idx = (*i, self.indices);
-                let mut dim = S::NUM_DIMS - 1;
-                loop {
-                    self.indices[dim] += 1;
-                    *i += self.strides[dim];
-
-                    if self.indices[dim] < self.shape[dim] {
-                        break;
-                    }
-
-                    *i -= self.shape[dim] * self.strides[dim];
-                    self.indices[dim] = 0;
-
-                    if dim == 0 {
-                        self.next = None;
-                        break;
-                    }
-
-                    dim -= 1;
-                }
-                Some(idx)
-            }
-        }
+        self.inner.next().map(|i_contig| {
+            let idx = self.to_nd_index(i_contig);
+            (self.apply_strides(idx), idx)
+        })
     }
 }
 
