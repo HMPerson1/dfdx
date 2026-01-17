@@ -131,23 +131,6 @@ impl<V> IdMap<V> {
         }
     }
 
-    pub(crate) fn keys(&self) -> impl Iterator<Item = UniqueId> + '_ {
-        self.inner
-            .iter()
-            .enumerate()
-            .filter_map(|(i, e)| e.as_ref().map(|_| UniqueId(self.max - i)))
-    }
-
-    pub(crate) fn retain(&mut self, f: impl Fn(&UniqueId, &V) -> bool) {
-        for (i, e) in self.inner.iter_mut().enumerate() {
-            if let Some(v) = e {
-                if !f(&UniqueId(self.max - i), v) {
-                    *e = None;
-                }
-            }
-        }
-    }
-
     pub(crate) fn get(&self, k: UniqueId) -> Option<&V> {
         if self.inner.is_empty() {
             return None;

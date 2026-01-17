@@ -39,7 +39,6 @@ wgpu = { version = "0.19.0", features = ["glsl", "spirv"], optional = true }
 naga = { version = "0.14.1", optional = true }
 futures-lite = { version = "2.0.1", optional = true }
 thingbuf = { version = "0.1.4", optional = true }
-rustc-hash = "2.1.1"
 
 [dev-dependencies]
 tempfile = "3.3.0"

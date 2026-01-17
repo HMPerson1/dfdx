@@ -1,13 +1,12 @@
 //! Implementations of [OwnedTape], [NoneTape], and generic Nd array containers via [Gradients].
 #![allow(clippy::type_complexity)]
 
-use rustc_hash::FxHashSet;
 use std::{boxed::Box, vec::Vec};
 
 use super::tensorlike::Tensorlike;
 use super::{
     storage_traits::Storage,
-    unique_id::{unique_id, unique_id_b, BackOpUniqueId, IdMap, UniqueId},
+    unique_id::{unique_id, unique_id_b, BackOpUniqueId, IdMap},
     Error, Tensor,
 };
 use crate::shapes::Shape;
@@ -23,7 +22,6 @@ use crate::shapes::Shape;
 #[derive(Clone, Debug)]
 pub struct Gradients<E, D: Storage<E>> {
     gradient_by_id: IdMap<D::OwnedVec>,
-    leaf_ids: Option<FxHashSet<UniqueId>>,
 }
 
 impl<E, D: Storage<E>> Gradients<E, D> {
@@ -36,33 +34,11 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     pub fn leaky() -> Self {
         Self {
             gradient_by_id: IdMap::new(),
-            leaf_ids: None,
         }
     }
 }
 
 impl<E, D: Storage<E>> Gradients<E, D> {
-    /// Drops all gradients except for the ids specified in the parameter.
-    pub fn retain_leafs(&mut self, ids: &[UniqueId]) {
-        self.leaf_ids
-            .get_or_insert_with(Default::default)
-            .extend(ids);
-        self.drop_non_leafs();
-    }
-
-    /// Marks all existing gradients as leaf gradients.
-    pub fn retain_current_grads_as_leafs(&mut self) {
-        self.leaf_ids = Some(self.gradient_by_id.keys().collect());
-    }
-
-    /// Keeps all gradients marked previously by [Gradients::retain_leafs], and drops all
-    /// others.
-    pub fn drop_non_leafs(&mut self) {
-        if let Some(leafs) = &self.leaf_ids {
-            self.gradient_by_id.retain(|k, _| leafs.contains(k));
-        }
-    }
-
     /// Returns a reference to the underlying gradient if found.
     pub fn get_ref_checked<S: Shape, T>(&self, t: &Tensor<S, E, D, T>) -> Option<&D::OwnedVec> {
         self.gradient_by_id.get(t.id)
@@ -297,12 +273,6 @@ impl<'a, E, D: Storage<E>> Merge<OwnedTape<'a, E, D>> for OwnedTape<'a, E, D> {
         self.gradients
             .gradient_by_id
             .extend(other.gradients.gradient_by_id);
-        if let Some(leafs) = other.gradients.leaf_ids {
-            self.gradients
-                .leaf_ids
-                .get_or_insert_with(Default::default)
-                .extend(leafs);
-        }
         self.operations.append(&mut other.operations);
         self
     }

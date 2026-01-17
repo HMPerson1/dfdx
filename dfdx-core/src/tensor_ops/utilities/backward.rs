@@ -22,8 +22,7 @@ impl<E: 'static + Clone, D: OneFillStorage<E>> Backward<E, D>
         tape.add_backward_op(move |grads| {
             t.device.try_fill_grad_with_ones(grads.get_mut(&t_ghost)?)
         });
-        let mut grads = tape.execute()?;
-        grads.drop_non_leafs();
+        let grads = tape.execute()?;
         Ok(grads)
     }
 }

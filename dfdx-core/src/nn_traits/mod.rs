@@ -108,7 +108,6 @@ pub trait ZeroGrads<E: Dtype, D: Device<E>> {
     fn try_alloc_grads(&self) -> Result<Gradients<E, D>, crate::tensor::Error> {
         let mut grads = Gradients::leaky();
         self.try_zero_grads(&mut grads)?;
-        grads.retain_current_grads_as_leafs();
         Ok(grads)
     }
 }
