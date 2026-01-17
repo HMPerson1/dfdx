@@ -1,12 +1,15 @@
 //! Implementations of [OwnedTape], [NoneTape], and generic Nd array containers via [Gradients].
 #![allow(clippy::type_complexity)]
 
-use rustc_hash::{FxHashMap, FxHashSet};
-use std::ptr;
+use rustc_hash::FxHashSet;
 use std::{boxed::Box, vec::Vec};
 
 use super::tensorlike::Tensorlike;
-use super::{storage_traits::Storage, unique_id, Error, Tensor, UniqueId};
+use super::{
+    storage_traits::Storage,
+    unique_id::{unique_id, unique_id_b, BackOpUniqueId, IdMap, UniqueId},
+    Error, Tensor,
+};
 use crate::shapes::Shape;
 
 /// A generic container for keeping gradients of tensors keyed by the
@@ -19,7 +22,7 @@ use crate::shapes::Shape;
 /// 4. Access mutable references to arrays
 #[derive(Clone, Debug)]
 pub struct Gradients<E, D: Storage<E>> {
-    gradient_by_id: FxHashMap<UniqueId, D::OwnedVec>,
+    gradient_by_id: IdMap<D::OwnedVec>,
     leaf_ids: Option<FxHashSet<UniqueId>>,
 }
 
@@ -32,21 +35,13 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     /// used consecutively.
     pub fn leaky() -> Self {
         Self {
-            gradient_by_id: Default::default(),
+            gradient_by_id: IdMap::new(),
             leaf_ids: None,
         }
     }
 }
 
 impl<E, D: Storage<E>> Gradients<E, D> {
-    /// Inserts a gradient for `t`
-    pub fn try_alloc_for<S: Shape>(&mut self, t: &impl Tensorlike<S, E, D>) -> Result<(), Error> {
-        if let std::collections::hash_map::Entry::Vacant(e) = self.gradient_by_id.entry(t.id()) {
-            e.insert(t.try_alloc_grad()?);
-        }
-        Ok(())
-    }
-
     /// Drops all gradients except for the ids specified in the parameter.
     pub fn retain_leafs(&mut self, ids: &[UniqueId]) {
         self.leaf_ids
@@ -57,7 +52,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 
     /// Marks all existing gradients as leaf gradients.
     pub fn retain_current_grads_as_leafs(&mut self) {
-        self.leaf_ids = Some(self.gradient_by_id.keys().copied().collect());
+        self.leaf_ids = Some(self.gradient_by_id.keys().collect());
     }
 
     /// Keeps all gradients marked previously by [Gradients::retain_leafs], and drops all
@@ -70,7 +65,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 
     /// Returns a reference to the underlying gradient if found.
     pub fn get_ref_checked<S: Shape, T>(&self, t: &Tensor<S, E, D, T>) -> Option<&D::OwnedVec> {
-        self.gradient_by_id.get(&t.id)
+        self.gradient_by_id.get(t.id)
     }
 
     /// Retrieves mutable gradient for `t`, allocating one if it isn't present.
@@ -78,16 +73,21 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         &mut self,
         t: &impl Tensorlike<S, E, D>,
     ) -> Result<&mut D::OwnedVec, Error> {
-        use std::collections::hash_map::Entry;
-        match self.gradient_by_id.entry(t.id()) {
+        Self::grad_entry_or_insert(t, self.gradient_by_id.entry(t.id()))
+    }
+
+    fn grad_entry_or_insert<'a, S: Shape>(
+        t: &impl Tensorlike<S, E, D>,
+        entry: super::unique_id::Entry<'a, D::OwnedVec>,
+    ) -> Result<&'a mut D::OwnedVec, Error> {
+        use super::unique_id::Entry;
+        match entry {
             Entry::Occupied(entry) => Ok(entry.into_mut()),
             Entry::Vacant(entry) => Ok(entry.insert(t.try_alloc_grad()?)),
         }
     }
 
-    /// Returns an immutable reference to the data associated with `t`.
-    ///
-    /// **Panics** if data associated with `t` is not found. This indicates an unrecoverable bug.
+    /// Returns an immutable reference to the data associated with `t`, allocating one if it isn't present.
     pub(crate) fn get_ref<S: Shape>(
         &mut self,
         t: &impl Tensorlike<S, E, D>,
@@ -101,7 +101,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     /// If no data is associated with `t` yet, this will panic due to an unwrap()
     /// on a .get() to the underlying hashmap.
     pub fn get<S: Shape>(&self, t: &impl Tensorlike<S, E, D>) -> Tensor<S, E, D> {
-        let buf = self.gradient_by_id.get(&t.id()).unwrap();
+        let buf = self.gradient_by_id.get(t.id()).unwrap();
         Tensor {
             id: unique_id(),
             data: t.dev().grad_to_tensor(buf),
@@ -116,18 +116,15 @@ impl<E, D: Storage<E>> Gradients<E, D> {
     /// `l` is the gradient to update, and `r` is the gradient to backprop.
     ///
     /// **Panics** if `l` and `r` have the same id.
-    #[inline(never)]
+    #[inline(never)] // inlining here actually produces slower (and larger) code
     pub(crate) fn mut_and_ref<'a, L: Shape, R: Shape>(
         &'a mut self,
         l: &impl Tensorlike<L, E, D>,
         r: &impl Tensorlike<R, E, D>,
     ) -> Result<(&'a mut D::OwnedVec, &'a D::OwnedVec), Error> {
-        self.gradient_by_id.reserve(2);
-        let l_ptr = self.get_mut(l)? as *mut _;
-        let r_ptr = self.get_ref(r)? as *const _;
-        assert!(!ptr::eq(l_ptr, r_ptr));
-        let l_ref = unsafe { &mut *l_ptr };
-        let r_ref = unsafe { &*r_ptr };
+        let [el, er] = self.gradient_by_id.entries_disjoint([l.id(), r.id()]);
+        let l_ref = Self::grad_entry_or_insert(l, el)?;
+        let r_ref = Self::grad_entry_or_insert(r, er)?;
         Ok((l_ref, r_ref))
     }
 
@@ -139,16 +136,12 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         l2: &impl Tensorlike<L2, E, D>,
         r: &impl Tensorlike<R, E, D>,
     ) -> Result<(&'a mut D::OwnedVec, &'a mut D::OwnedVec, &'a D::OwnedVec), Error> {
-        self.gradient_by_id.reserve(3);
-        let l1_ptr = self.get_mut(l1)? as *mut _;
-        let l2_ptr = self.get_mut(l2)? as *mut _;
-        let r_ptr = self.get_ref(r)? as *const _;
-        assert!(!ptr::eq(l1_ptr, l2_ptr));
-        assert!(!ptr::eq(l1_ptr, r_ptr));
-        assert!(!ptr::eq(l2_ptr, r_ptr));
-        let l1_ref = unsafe { &mut *l1_ptr };
-        let l2_ref = unsafe { &mut *l2_ptr };
-        let r_ref = unsafe { &*r_ptr };
+        let [el1, el2, er] = self
+            .gradient_by_id
+            .entries_disjoint([l1.id(), l2.id(), r.id()]);
+        let l1_ref = Self::grad_entry_or_insert(l1, el1)?;
+        let l2_ref = Self::grad_entry_or_insert(l2, el2)?;
+        let r_ref = Self::grad_entry_or_insert(r, er)?;
         Ok((l1_ref, l2_ref, r_ref))
     }
 
@@ -158,21 +151,29 @@ impl<E, D: Storage<E>> Gradients<E, D> {
         ls: &Vec<impl Tensorlike<L, E, D>>,
         r: &impl Tensorlike<R, E, D>,
     ) -> Result<(Vec<&'a mut D::OwnedVec>, &'a D::OwnedVec), Error> {
-        self.gradient_by_id.reserve(ls.len() + 1);
+        // run `get_mut` for all inputs to ensure gradient storage exists
+        ls.iter().try_for_each(|l| self.get_mut(l).map(|_| ()))?;
+        self.get_ref(r)?;
+
+        // verify disjointedness
         for i in 0..ls.len() {
             assert_ne!(ls[i].id(), r.id());
             for j in (i + 1)..ls.len() {
                 assert_ne!(ls[i].id(), ls[j].id());
             }
         }
-        let l_refs: Vec<&mut D::OwnedVec> = ls
+
+        // SAFETY:
+        // - `IdMap.get{_mut}` does not reallocate
+        // - all `id`s are disjoint
+        let l_refs = ls
             .iter()
             .map(|l| {
-                self.get_mut(l)
-                    .map(|l_ptr| unsafe { &mut *(l_ptr as *mut _) })
+                let l_ptr = self.gradient_by_id.get_mut(l.id()).unwrap() as *mut _;
+                unsafe { &mut *(l_ptr) }
             })
-            .collect::<Result<_, _>>()?;
-        let r_ptr = self.get_ref(r)? as *const _;
+            .collect();
+        let r_ptr = self.gradient_by_id.get(r.id()).unwrap() as *const _;
         let r_ref = unsafe { &*r_ptr };
         Ok((l_refs, r_ref))
     }
@@ -182,7 +183,7 @@ impl<E, D: Storage<E>> Gradients<E, D> {
 pub struct OwnedTape<'a, E, D: Storage<E>> {
     /// A list of (Time, BackwardOp) pairs. The Time is used to ensure operations
     /// from merged tapes are executed in the correct order.
-    pub(crate) operations: Vec<(UniqueId, BackwardOp<'a, E, D, D::Allocator>), D::Allocator>,
+    pub(crate) operations: Vec<(BackOpUniqueId, BackwardOp<'a, E, D, D::Allocator>), D::Allocator>,
     pub(crate) gradients: Gradients<E, D>,
 }
 
@@ -209,6 +210,13 @@ impl<E, D: Storage<E>> OwnedTape<'_, E, D> {
     ///
     /// Note that this method takes ownership of self, so it can't be called twice!
     pub(crate) fn execute(&mut self) -> Result<Gradients<E, D>, Error> {
+        // we can't know exactly how many gradients we have to store, but
+        // on average each operation requires about 1 new input, and
+        // UniqueIds are almost contiguous, so this is a good guess
+        self.gradients
+            .gradient_by_id
+            .reserve(self.operations.capacity());
+
         // We must ensure that the operations are sorted in execution time order.
         // Otherwise an backward operation may not be executed in the right order
         // if multiple tapes were merged together.
@@ -219,15 +227,6 @@ impl<E, D: Storage<E>> OwnedTape<'_, E, D> {
             (operation)(&mut self.gradients)?;
         }
         Ok(std::mem::replace(&mut self.gradients, Gradients::leaky()))
-    }
-
-    pub fn hint_reserve(&mut self, ops: usize, grads: usize) {
-        self.operations.reserve(ops);
-        self.gradients.gradient_by_id.reserve(grads);
-    }
-
-    pub fn get_sizes(&self) -> (usize, usize) {
-        (self.operations.len(), self.gradients.gradient_by_id.len())
     }
 }
 
@@ -257,7 +256,7 @@ impl<'a, E, D: Storage<E>> Tape<'a, E, D> for OwnedTape<'a, E, D> {
         F: 'a + FnOnce(&mut Gradients<E, D>) -> Result<(), Error>,
     {
         self.operations.push((
-            unique_id(),
+            unique_id_b(),
             Box::new_in(operation, self.operations.allocator().clone()),
         ));
     }
