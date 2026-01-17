@@ -46,7 +46,7 @@ pub fn add<'a, S: Shape, E: Dtype, D, T: Tape<'a, E, D> + Merge<R>, R: Default>(
     rhs: Tensor<S, E, D, R>,
 ) -> Tensor<S, E, D, T>
 where
-    D: BinaryKernel<BinaryAddKernelOp, E> + 'a,
+    D: BinaryKernel2<BinaryAddKernelOp, E> + 'a,
 {
     lhs + rhs
 }
@@ -60,26 +60,26 @@ pub trait TryAdd<Rhs = Self> {
 impl<'a, S: Shape, E: Dtype, D, LhsTape: Tape<'a, E, D>, R> TryAdd<Tensor<S, E, D, R>>
     for Tensor<S, E, D, LhsTape>
 where
-    D: BinaryKernel<BinaryAddKernelOp, E> + 'a,
+    D: BinaryKernel2<BinaryAddKernelOp, E> + 'a,
     LhsTape: Merge<R>,
 {
     type Output = Self;
     /// See [add]
     fn try_add(self, rhs: Tensor<S, E, D, R>) -> Result<Self, Error> {
-        try_binary_op(BinaryAddKernelOp, self, rhs)
+        try_binary_op2(BinaryAddKernelOp, self, rhs)
     }
 }
 
 impl<'a, S: Shape, E: Dtype, Rhs: Into<f64>, D, T: Tape<'a, E, D>> TryAdd<Rhs> for Tensor<S, E, D, T>
 where
-    D: UnaryKernel<ScalarAddKernelOp<E>, E> + 'a,
+    D: UnaryKernel2<ScalarAddKernelOp<E>, E> + 'a,
 {
     type Output = Self;
     /// See [add]
     fn try_add(self, rhs: Rhs) -> Result<Self, Error> {
         let rhs: f64 = rhs.into();
         let scalar = E::from_f64(rhs).unwrap();
-        try_unary_op(ScalarAddKernelOp { scalar }, self)
+        try_unary_op2(ScalarAddKernelOp { scalar }, self)
     }
 }
 

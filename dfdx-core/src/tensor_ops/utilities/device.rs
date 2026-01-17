@@ -52,13 +52,13 @@ pub trait Device<E: Dtype>:
     + super::super::matmul::MatMatBatch4Kernel<E>
 
     // scalar arithmetic
-    + UnaryKernel<super::super::add::ScalarAddKernelOp<E>, E>
+    + UnaryKernel2<super::super::add::ScalarAddKernelOp<E>, E>
     + UnaryKernel2<super::super::sub::ScalarSubKernelOp<E>, E>
     + UnaryKernel2<super::super::mul::ScalarMulKernelOp<E>, E>
     + UnaryKernel2<super::super::div::ScalarDivKernelOp<E>, E>
 
     // binary arithmetic
-    + BinaryKernel<super::super::add::BinaryAddKernelOp, E>
+    + BinaryKernel2<super::super::add::BinaryAddKernelOp, E>
     + BinaryKernel2<super::super::sub::BinarySubKernelOp, E>
     + BinaryKernel2<super::super::mul::BinaryMulKernelOp, E>
     + BinaryKernel2<super::super::div::BinaryDivKernelOp, E>
